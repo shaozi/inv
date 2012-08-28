@@ -1,0 +1,90 @@
+/* 
+    Document   : invstyle.css
+    Created on : Feb 16, 2010, 11:48:57 AM
+    Author     : jchen
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+#message {
+	position:fixed;
+	top:40px;
+	left:4px;
+}
+
+#allgroups, #allusers, #groupmemberdiv {
+	width: 240px;
+	float: left;
+	margin:4px;
+}
+
+
+.sec-title {
+	margin-bottom:0px;
+	padding:8px;
+}
+.sec-content {
+	margin-top: 0px;
+	padding: 8px;
+	border: solid 1px #dddddd;
+}
+.sec-content ul {
+	list-style-type: none;
+	margin: 4px;
+	padding: 2px;
+}
+.sec-content li {
+	cursor:pointer;
+}
+.sec-content li:hover {
+	color:red;
+}
+
+
+.ui-widget {
+	font-size: 80%;
+}
+
+#header {
+	height: 32px;
+	background-color: #0084c8;
+	padding: 8px;
+	margin:0px;
+	border-bottom: 1px solid #005c94;
+	color: white;
+}
+#welcome {
+	float: right;
+}
+#menu, #notice {
+	float:left;
+}
+
+h1, h2, h3, h4, h5 {
+    color: #005c94;
+}
+body {
+	font-size: 85%;
+	font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
+	padding: 0px;
+	margin: 0px;
+}
+#main {
+	margin: 10px;
+}
+table, th,td {
+	border-collapse: collapse;
+	padding: 0.2em 1ex 0.2em 1ex;
+}
+
+#approvaltable, #partintable, #partouttable{
+	border: 1px solid #cccccc;
+}
+
+.saperator {
+	height:1px;
+	width: 240px;
+	background-color: #dddddd;
+	margin-top: 12px;
+	margin-bottom: 12px;
+}

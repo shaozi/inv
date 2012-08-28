@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Insert title here</title>
+</head>
+<body>
+
+<select name="websites" size="1">
+                <option selected>Select</option>
+                <option  value="#GENERAL MEDICINE">General Medicine</option>
+                <option value="#CARDIOLOGY">Cardiology</option>
+                <option value="#PAEDIATRICS">Paediatrics</option>
+                <option value="#NEUROLOGY">Neurology</option>
+        <option value="#GASTROENTEROLOGY">Gastroenterology</option>
+<input type="button" value="Go!"
+                onClick="location=document.testform.websites.options
+                [document.testform.websites.selectedIndex].value">
+
+<a name="GENERAL MEDICINE">GENERAL MEDICINE</a>
+
+<form name="testform">
+<input type="submit"/>
+</form>
+
+</body>
+</html>
