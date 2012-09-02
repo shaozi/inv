@@ -7,6 +7,12 @@ $db_var = array();
 $realname = array();
 $get_info_done = FALSE;
 $dbh;
+$config_file = dirname($_SERVER['SCRIPT_FILENAME']).'/config.php';
+if (!file_exists($config_file)) {
+	die("Cannot find config.php. Run install.php first");
+}
+
+include $config_file;
 
 define("NONE_EXIST", -1);
 define("RIGHT_NONE", 0);
@@ -47,10 +53,10 @@ function db_init() {
 	global $dbh;
 	global $realname;
 	// Connect database.
-	$host="localhost"; // Host name.
-	$db_user="inv"; // MySQL username.
-	$db_password="1nv1NV"; // MySQL password.
-	$database="inv"; // Database name.
+	$host=DBHOST; // Host name.
+	$db_user=DBNAME; // MySQL username.
+	$db_password=DBPASS; // MySQL password.
+	$database=DBNAME; // Database name.
 	try {
 		$dbh = new PDO("mysql:host=$host;dbname=$database", $db_user, $db_password );
 		foreach ($dbh->query('select username,realname from user') as $row) {
@@ -99,7 +105,8 @@ function authenticate() {
 			username=:username and password=:password and isowner=1");
 
 			$stmt->bindParam(':username', $_REQUEST['username']);
-			$stmt->bindParam(':password', md5($_REQUEST['password']));
+			$md5_pass = md5($_REQUEST['password']);
+			$stmt->bindParam(':password', $md5_pass );
 			$stmt->execute();
 			if ($stmt->rowCount()==1) {
 				// auth passed
@@ -2068,9 +2075,8 @@ function print_html_header($page) {
 	href="jq/css/ui-lightness/jquery-ui-1.8.13.custom.css" rel="Stylesheet" />
 <link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
 
-<script type="text/javascript" src="jq/js/jquery-1.5.1.min.js"></script>
-<script type="text/javascript"
-	src="jq/js/jquery-ui-1.8.13.custom.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"></script>
 
 <script type='text/javascript' src='js/invlib.js'></script>
 	<?php

@@ -14,7 +14,7 @@ if (isset($_POST['register'])) {
         // Connect database.
         db_init();
 
-        $username = mb_strtolower(escape_string($_POST['username']));
+        $username = escape_string($_POST['username']);
         $realname = escape_string($_POST['realname']);
         $email = escape_string($_POST['email']);
         $groupname = escape_string($_REQUEST['joingroup'],1);
