@@ -123,12 +123,6 @@ define("DBPASS", '$pass');
 CONFIG
 		);
 		fclose($config_file);
-
-# unzip all src files
-		$zip = new ZipArchive; 
-    		$zip->open('inv.zip'); 
-    		$zip->extractTo('./'); 
-    		$zip->close(); 
     
 	} catch (PDOException $e) {
 		die("DB ERROR: ". $e->getMessage());
