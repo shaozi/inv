@@ -18,7 +18,6 @@ define("NONE_EXIST", -1);
 define("RIGHT_NONE", 0);
 define("RIGHT_RO", 1);
 define("RIGHT_FULL", 2);
-define("UPLOAD_FILE_TMP_FOLDER",'D:/wamp/tmp/');
 define('PASS', 1);
 define('FAIL', 0);
 define('DEBUG', 0);
@@ -55,16 +54,15 @@ function db_init() {
 	// Connect database.
 	$host=DBHOST; // Host name.
 	$db_user=DBNAME; // MySQL username.
-	$db_password=DBPASS; // MySQL password.
-	$database=DBNAME; // Database name.
+
 	try {
-		$dbh = new PDO("mysql:host=$host;dbname=$database", $db_user, $db_password );
+		$dbh = new PDO("mysql:host=$host;dbname=$database", DBUSER, DBPASS );
 		foreach ($dbh->query('select username,realname from user') as $row) {
 			$realname[$row['username']] = ucwords($row['realname']);
 		}
 		return $dbh;
 	} catch (PDOException $e) {
-		die("DB ERROR: ". $e->getMessage());
+		die("DB ERROR: ". __FILE__ . __LINE__ . $e->getMessage());
 	}
 }
 
@@ -2072,7 +2070,7 @@ function print_html_header($page) {
 
 
 <link type="text/css"
-	href="jq/css/ui-lightness/jquery-ui-1.8.13.custom.css" rel="Stylesheet" />
+	href="jq/css/ui-lightness/jquery-ui.custom.css" rel="Stylesheet" />
 <link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>

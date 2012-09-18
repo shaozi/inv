@@ -1,6 +1,5 @@
 <?php
-$create_table_sql = <<<'END'
-
+$create_table_sql = <<<END
 DROP TABLE IF EXISTS `customer`;
 CREATE TABLE IF NOT EXISTS `customer` (
   `customer_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -65,7 +64,6 @@ CREATE TABLE IF NOT EXISTS `user_group_mapping` (
 
 ALTER TABLE `user_group_mapping`
   ADD CONSTRAINT `user_group_mapping_ibfk_2` FOREIGN KEY (`user`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE;
-
 END;
 
 
