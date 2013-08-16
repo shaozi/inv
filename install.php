@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
   `customer_id` int(11) DEFAULT NULL,
   `action` set('in','out','request_checkin','request_checkout','approve','deny') NOT NULL,
   `last_transaction_id` int(11) NOT NULL,
-  `date` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `date` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' ON UPDATE CURRENT_TIMESTAMP,
   `duebackin` int(11) NOT NULL DEFAULT '30' COMMENT 'Due back time when check out an item (in days)',
   `username` varchar(64) NOT NULL,
   `transaction_comment` text NOT NULL,
