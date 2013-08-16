@@ -1853,7 +1853,7 @@ function print_upload_form() {
 
 function process_upload_file() {
 	$uploaddir = sys_get_temp_dir();
-	$uploadfile = $uploaddir . basename($_FILES['userfile']['name']);
+	$uploadfile = $uploaddir . "/" . basename($_FILES['userfile']['name']);
 	if (move_uploaded_file($_FILES['userfile']['tmp_name'], $uploadfile)) {
 		$row = 1;
 		$title=array('serial', 'model', 'part_comment','status','customer_name',
