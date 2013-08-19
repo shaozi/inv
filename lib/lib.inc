@@ -54,7 +54,8 @@ function db_init() {
 	// Connect database.
 	$host=DBHOST; // Host name.
 	$db_user=DBNAME; // MySQL username.
-
+	$db_password=DBPASS; // MySQL password.
+	$database=DBNAME; // Database name.
 	try {
 		$dbh = new PDO("mysql:host=$host;dbname=$database", DBUSER, DBPASS );
 		foreach ($dbh->query('select username,realname from user') as $row) {
@@ -287,36 +288,96 @@ function get_same_group_users ($username) {
 	return $users;
 }
 
-function print_page_title() {
-	global $realname;
-	if (isset($_SESSION['username'])) {
-		$name = My_query_ret("select realname from user where username=?",
-		$_SESSION['username']);
+  function print_page_title() {
+    global $realname;
+    if (isset($_SESSION['username'])) {
+      $name = My_query_ret("select realname from user where username=?",
+                           $_SESSION['username']);
+		  $fullname=explode(" ", $name);
+			$firstname=ucwords($fullname[0]);
+      print <<<END
+				<nav class="navbar navbar-default" role="navigation">
+				  <!-- Brand and toggle get grouped for better mobile display -->
+				  <div class="navbar-header">
+				    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+				      <span class="sr-only">Toggle navigation</span>
+				      <span class="icon-bar"></span>
+				      <span class="icon-bar"></span>
+				      <span class="icon-bar"></span>
+				    </button>
+				    <a class="navbar-brand" href="#">
+				      <span class="glyphicon glyphicon-search"></span> 
+				      Inventory DB
+				    </a>
 
-		print ("
-		<div id='header'>
-		    <div id='menu'>
-		    <a href='./index.php'>Home</a> 
-		    <a href='./index.php?logout=1'>Logout</a> 
-		    <a href='./index.php?tools=1'>Tools</a>
-		    <a href='help.php'>User Guide</a>
-		    </div>
-		    <div id='notice'></div>
-		");
-		$fullname=explode(" ", $name);
-		$firstname=ucwords($fullname[0]);
-		print ("<div id='welcome'>Welcome ".$firstname."! </div>");
-		print("</div>"); // end of div head
-	} else {
-		print "
-			<div id='header'>
-			<div id='menu'>
-			<a href='./register.php'>New User Register</a>
-			<a href='./reset_password.php'>Reset Password</a>
-			</div>
-			<div id='welcome'>Please Login</div>
-			</div>";
-	}
+				  </div>
+				  <!-- Collect the nav links, forms, and other content for toggling -->
+				  <div class="collapse navbar-collapse navbar-ex1-collapse">
+				    <ul class="nav navbar-nav">
+				      <li><a href="./index.php">Home</a></li>
+				      <li><a href="./index.php?logout=1">Logout</a></li>
+				      <li class="dropdown">
+				        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tools <b class="caret"></b></a>
+				        <ul class="dropdown-menu">
+						    <li><a href='./change_user_profile.php'> Change Profile (Name, Email, or Password) </a></li>
+						    <li><a href='index.php?approve=1'> Check Loaner or Return Request from Other Users</a></li>
+						    <li><a href='index.php?uploadfile=1'> Upload a CSV file</a></li>
+						    <li><a href='index.php?editpart=1'> Edit Part</a></li>
+						    <li><a href='index.php?searchall=1'> List All Parts</a></li>
+						    <li><a href='index.php?searchalldetail=1'>List All Parts Detailed</a></li>
+						    <li><a href='help.php'>User Guide</a></li>
+END;
+	
+		$result=My_query("select * from user where username=? and issuperuser=1", $_SESSION['username']);
+		if ($result->rowCount()==1) {
+			//This is super user
+			print("<li class='divider'></li>");
+			print("<li><a href='./manage.php'> User Group Management</a></li>");
+		}
+	
+print <<<END
+				        </ul>
+				      </li>
+							<li><a href="help.php">User Guide</a></li>
+							<li><span id='notice'></span></li>
+				    </ul>
+				    <p class="navbar-text pull-right">
+				      Welcome $firstname!
+				    </p>
+				  </div><!-- /.navbar-collapse -->
+				</nav>
+END;
+    } else {
+      print <<<END
+				<nav class="navbar navbar-default" role="navigation">
+				  <!-- Brand and toggle get grouped for better mobile display -->
+				  <div class="navbar-header">
+				    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+				      <span class="sr-only">Toggle navigation</span>
+				      <span class="icon-bar"></span>
+				      <span class="icon-bar"></span>
+				      <span class="icon-bar"></span>
+				    </button>
+				    <a class="navbar-brand" href="index.php">
+				      <span class="glyphicon glyphicon-search"></span> 
+				      Inventory DB
+				    </a>
+
+				  </div>
+				  <!-- Collect the nav links, forms, and other content for toggling -->
+				  <div class="collapse navbar-collapse navbar-ex1-collapse">
+				    <ul class="nav navbar-nav">
+				      <li><a href="./register.php">New user register</a></li>
+				      <li><a href="./reset_password.php">Reset password</a></li>
+				    </ul>
+				    <p class="navbar-text pull-right">
+				      Please Login!
+				    </p>
+				  </div><!-- /.navbar-collapse -->
+				</nav>
+END;
+
+  }
 }
 
 function print_tools_page() {
@@ -1853,7 +1914,7 @@ function print_upload_form() {
 
 function process_upload_file() {
 	$uploaddir = sys_get_temp_dir();
-	$uploadfile = $uploaddir . "/" . basename($_FILES['userfile']['name']);
+	$uploadfile = $uploaddir ."/". basename($_FILES['userfile']['name']);
 	if (move_uploaded_file($_FILES['userfile']['tmp_name'], $uploadfile)) {
 		$row = 1;
 		$title=array('serial', 'model', 'part_comment','status','customer_name',
@@ -2059,24 +2120,35 @@ function debug_print($v) {
 function print_html_header($page) {
 	?>
 
-<!DOCTYPE HTML>
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta name="keywords" content="Inventory Database" />
+  <!DOCTYPE HTML>
+  <html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="keywords" content="Inventory Database" />
+  
+  <link rel="shortcut icon" href="img/favicon.ico" />
+  <title><?php echo $page;?></title>
+  
+  
+  <link type="text/css"
+  href="jq/css/ui-lightness/jquery-ui.custom.css" rel="Stylesheet" />
+  <link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
+  
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	
+  <!-- Include all compiled plugins (below), or include individual files as needed -->
+  <script src="assets/js/bootstrap.min.js"></script>
+	
+	
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+  
+  <script type='text/javascript' src='js/invlib.js'></script>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Bootstrap -->
+  <link href="assets/css/bootstrap.min.css" rel="stylesheet" media="screen">
 
-<link rel="shortcut icon" href="img/favicon.ico" />
-<title><?php echo $page;?></title>
-
-
-<link type="text/css"
-	href="jq/css/ui-lightness/jquery-ui.custom.css" rel="Stylesheet" />
-<link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
-
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
-<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"></script>
-
-<script type='text/javascript' src='js/invlib.js'></script>
 	<?php
 	switch ($page) {
 		case HOMEPAGE:
