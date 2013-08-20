@@ -1099,7 +1099,21 @@ function print_search_result($info=array()) {
 
 function print_login_form() {
 	print_page_title();
-	print <<<END
+    print <<<END
+<div class="container">
+
+      <form class="form-signin" action='./index.php' method='post'>
+        <h2 class="form-signin-heading">Please log in</h2>
+        <input name='username' type="text" class="form-control" placeholder="User name" autofocus>
+        <input name='password' type="password" class="form-control" placeholder="Password">
+<label class="checkbox">
+          <input type="checkbox" value="remember-me"> Remember me
+        </label>
+        <button name='login' class="btn-lg btn-block" type="submit">Log in</button>
+      </form>
+
+END;
+/*	print <<<END
 	<div id='main'>
     <form action="./index.php" method="post">
     <p>Username: <input type="text" name="username"></p>
@@ -1107,8 +1121,9 @@ function print_login_form() {
     <input type="submit" name="login" value="Login">
     </form>
 END;
+*/
 	if (isset($login_err)) echo "$login_err";
-	print("</div>");
+	print("</div> <!-- /container -->");
 }
 
 /**

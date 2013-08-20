@@ -32,8 +32,8 @@ function deconotice() {
 	$('#notice').prepend('<span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>');
 }
 function decomenu() {
-	$('#menu').buttonset();
-	$('#menu a').button();
+	//$('#menu').buttonset();
+	//$('#menu a').button();
 }
 function decotable() {
 	$('#partintable').tablesorter({widgets: ['zebra']});
