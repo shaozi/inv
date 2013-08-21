@@ -100,16 +100,19 @@ function authenticate() {
 	if (isset($_REQUEST['login'])) {
 		//echo 'auth with login';
 		if (isset($_REQUEST['username']) && isset($_REQUEST['password']) ) {
+            $username = strtolower(trim($_REQUEST['username']));
+            $password = trim($_REQUEST['password']);
+
 			$stmt = $dbh->prepare("select * from user where
 			username=:username and password=:password and isowner=1");
 
-			$stmt->bindParam(':username', $_REQUEST['username']);
-			$md5_pass = md5($_REQUEST['password']);
+			$stmt->bindParam(':username', $username);
+			$md5_pass = md5($password);
 			$stmt->bindParam(':password', $md5_pass );
 			$stmt->execute();
 			if ($stmt->rowCount()==1) {
 				// auth passed
-				$_SESSION['username'] = $_REQUEST['username'];
+				$_SESSION['username'] = $username;
 				return PASS;
 			}
 		}
@@ -1113,15 +1116,6 @@ function print_login_form() {
       </form>
 
 END;
-/*	print <<<END
-	<div id='main'>
-    <form action="./index.php" method="post">
-    <p>Username: <input type="text" name="username"></p>
-    <p>Password: <input type="password" name="password"></p>
-    <input type="submit" name="login" value="Login">
-    </form>
-END;
-*/
 	if (isset($login_err)) echo "$login_err";
 	print("</div> <!-- /container -->");
 }
