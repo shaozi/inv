@@ -79,9 +79,9 @@ function install() {
 	$pass=$_REQUEST['dbpass'];
 	$db=$_REQUEST['dbname'];
 
-	$username = trim($_REQUEST['username']);
+	$username = strtolower(trim($_REQUEST['username']));
     $realname = trim($_REQUEST['realname']);
-    $email = trim($_REQUEST['email']);
+    $email = strtolower(trim($_REQUEST['email']));
 	$realname = ucwords($realname);
 		
     $pass1 = md5($_REQUEST['pass1']);
