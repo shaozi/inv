@@ -65,9 +65,9 @@ print_html_header(HOMEPAGE);
 
         <form method="post" action="<?php echo $_SERVER['PHP_SELF'];?>">
 	<table border='0'>
-	<tr><td>Username: </td><td><input type="text" name="username"></td> (all lower case) </tr>
+	<tr><td>Username: </td><td><input type="text" name="username"> (all lower case) </td></tr>
 	<tr><td>Full Name: </td><td><input type="text" name="realname"/></td></tr>
-    <tr><td>Email Address: </td><td><input type="text" name="email"/></td> (all lower case) </tr>
+    <tr><td>Email Address: </td><td><input type="text" name="email"/> (all lower case) </td></tr>
 	<tr><td>Password: </td><td><input type="password" name="newpassword"/></td></tr>
 	<tr><td>Confirm Password: </td><td><input type="password" name="confirmpassword"/></td></tr>
 	<tr><td>Join Group: </td><td><select name="joingroup"><option value="None">None</option>
