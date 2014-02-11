@@ -116,7 +116,7 @@ function initCreateGroupDialog() {
 		buttons: {
 			"Create Group": function() {
 				var groupname =
-					$('#newgroupname').attr('value');
+					$('#newgroupname').val();
 				$.ajax({
 					'url':'manage_server.php',
 					'data': {
