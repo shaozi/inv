@@ -1,6 +1,6 @@
 <?php
-define("DBHOST", 'DBSERVER');
-define("DBNAME", 'DBNAME');
-define("DBUSER", 'DBUSER');
-define("DBPASS", 'DBPASS');
+define("DBHOST", 'localhost');
+define("DBNAME", 'inv');
+define("DBUSER", 'inv');
+define("DBPASS", 'invpass');
 ?>

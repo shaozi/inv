@@ -63,7 +63,9 @@ function db_init() {
 		}
 		return $dbh;
 	} catch (PDOException $e) {
-		die("DB ERROR: ". __FILE__ . __LINE__ . $e->getMessage());
+		die("<pre>DB ERROR: ". __FILE__ .": " . 
+	 __LINE__ . " " . $e->getMessage() . "\n To reinstall database," .
+	" remove config.php and go to install.php </pre>");
 	}
 }
 
@@ -682,8 +684,8 @@ END;
      <textarea rows='2' cols='30' class='itext' name='comment' id='comment'>$_POST[comment]</textarea>
      </p>
      <p>
-     <input type='submit' name='new_checkin' value=' Add to Database ' />
-     <input type='submit' name='cancel' value=' Cancel ' />
+     <input type='submit' class='btn btn-default' name='new_checkin' value=' Add to Database ' />
+     <input type='submit' class='btn btn-default' name='cancel' value=' Cancel ' />
      </p>
      </form>
 END;
@@ -782,14 +784,14 @@ function print_transact_form($info=array()) {
 </table>
 
  
- <input type='submit' name='search', value=' Search ' />
- <span class='buttonset'>
- <input type='submit' name='checkin' value=' Check In ' />
- <input type='submit' name='checkout' value=' Check Out ' />
+ <input type='submit' class='btn btn-primary' name='search', value=' Search ' />
+ <span class='btn-group'>
+ <input type='submit' class='btn btn-success' name='checkin' value=' Check In ' />
+ <input type='submit' class='btn btn-danger' name='checkout' value=' Check Out ' />
  </span>
- <span class='buttonset'>
- <input type='submit' name='searchall', value=' List All ' />
- <input type='submit' name='searchalldetail', value=' List All Detailed' />
+ <span class='btn-group'>
+ <input type='submit' class='btn btn-info' name='searchall', value=' List All ' />
+ <input type='submit' class='btn btn-warning' name='searchalldetail', value=' List All Detailed' />
  </span>
  </form>
  
@@ -1112,7 +1114,7 @@ function print_login_form() {
 <label class="checkbox">
           <input type="checkbox" value="remember-me"> Remember me
         </label>
-        <button name='login' class="btn-lg btn-block" type="submit">Log in</button>
+        <button name='login' class="btn btn-block btn-primary" type="submit">Log in</button>
       </form>
 
 END;
@@ -2139,24 +2141,20 @@ function print_html_header($page) {
   <title><?php echo $page;?></title>
   
   
-  <link type="text/css"
-  href="jq/css/ui-lightness/jquery-ui.custom.css" rel="Stylesheet" />
-  <link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
-  
   <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-	
-  <!-- Include all compiled plugins (below), or include individual files as needed -->
-  <script src="assets/js/bootstrap.min.js"></script>
-	
-	
-  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+  <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.11.1/jquery-ui.min.js"></script>
   
   <script type='text/javascript' src='js/invlib.js'></script>
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Bootstrap -->
-  <link href="assets/css/bootstrap.min.css" rel="stylesheet" media="screen">
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <!-- Latest compiled and minified JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+  <link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
 
 	<?php
 	switch ($page) {

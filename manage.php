@@ -34,16 +34,16 @@ if($result!=PASS) {
 <div id='message'></div>
 <div>
 
-<span class="buttonset">
-<input type="button" id="creategroupbtn" value="Create Group"/>
-<input type="button" id="deletegroupbtn" value="Delete Group"/>
+<span class="btn-group">
+<input type="button" class="btn btn-sm btn-success" id="creategroupbtn" value="Create Group"/>
+<input type="button" class="btn btn-sm btn-danger" id="deletegroupbtn" value="Delete Group"/>
 </span>
-<span class="buttonset">
-<input type="button" id="addusertogroupbtn" value="Add User to Group"/>
-<input type="button" id="deleteuserfromgroupbtn" value="Delete User from Group"/>
-<input type="button" id="toggleuseradminbtn" value="Toggle Group Admin"/>
+<span class="btn-group">
+<input type="button" class="btn btn-sm btn-success" id="addusertogroupbtn" value="Add User to Group"/>
+<input type="button" class="btn btn-sm btn-danger" id="deleteuserfromgroupbtn" value="Delete User from Group"/>
+<input type="button" class="btn btn-sm btn-info" id="toggleuseradminbtn" value="Toggle Group Admin"/>
 </span>
-<input type="button" id="deleteuserbtn" value="Delete User"/>
+<input type="button" class="btn btn-sm btn-danger" id="deleteuserbtn" value="Delete User"/>
 
 </div>
 

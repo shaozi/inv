@@ -8,7 +8,21 @@ CREATE TABLE IF NOT EXISTS `customer` (
   `email` varchar(64) DEFAULT NULL,
   `telephone` char(10) DEFAULT NULL,
   PRIMARY KEY (`customer_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `user`;
+CREATE TABLE IF NOT EXISTS `user` (
+  `username` varchar(64) NOT NULL,
+  `password` char(32) NOT NULL,
+  `realname` varchar(64) NOT NULL,
+  `email` varchar(64) NOT NULL,
+  `phone` varchar(32) NOT NULL,
+  `isowner` tinyint(4) NOT NULL DEFAULT '1',
+  `issuperuser` tinyint(4) NOT NULL DEFAULT '0',
+  `write_group` varchar(320) NOT NULL,
+  `read_group` varchar(320) NOT NULL,
+  PRIMARY KEY (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `parts`;
 CREATE TABLE IF NOT EXISTS `parts` (
@@ -18,9 +32,10 @@ CREATE TABLE IF NOT EXISTS `parts` (
   `status` set('in','out') NOT NULL DEFAULT 'in',
   `part_comment` text,
   `transaction_id` int(11) NOT NULL,
-  `owner` varchar(32) NOT NULL,
-  PRIMARY KEY (`serial`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  `owner` varchar(64) NOT NULL,
+  PRIMARY KEY (`serial`),
+  FOREIGN KEY (owner) REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `transaction`;
@@ -34,36 +49,22 @@ CREATE TABLE IF NOT EXISTS `transaction` (
   `username` varchar(64) NOT NULL,
   `transaction_comment` text NOT NULL,
   `transaction_id` int(11) NOT NULL AUTO_INCREMENT,
-  PRIMARY KEY (`transaction_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
-
-
-DROP TABLE IF EXISTS `user`;
-CREATE TABLE IF NOT EXISTS `user` (
-  `username` varchar(32) NOT NULL,
-  `password` char(32) NOT NULL,
-  `realname` varchar(64) NOT NULL,
-  `email` varchar(64) NOT NULL,
-  `phone` varchar(32) NOT NULL,
-  `isowner` tinyint(4) NOT NULL DEFAULT '1',
-  `issuperuser` tinyint(4) NOT NULL DEFAULT '0',
-  `write_group` varchar(320) NOT NULL,
-  `read_group` varchar(320) NOT NULL,
-  PRIMARY KEY (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  PRIMARY KEY (`transaction_id`),
+  FOREIGN KEY (`username`) REFERENCES user(username) ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (`serial`) REFERENCES parts(serial) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `user_group_mapping`;
 CREATE TABLE IF NOT EXISTS `user_group_mapping` (
   `group` varchar(32) DEFAULT NULL,
-  `user` varchar(32) DEFAULT NULL,
+  `user` varchar(64) DEFAULT NULL,
   `is_admin` tinyint(4) NOT NULL DEFAULT '0',
   UNIQUE KEY `uc_ug` (`user`,`group`),
-  KEY `group` (`group`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  KEY `group` (`group`),
+  FOREIGN KEY (`user`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-ALTER TABLE `user_group_mapping`
-  ADD CONSTRAINT `user_group_mapping_ibfk_2` FOREIGN KEY (`user`) REFERENCES `user` (`username`) ON DELETE CASCADE ON UPDATE CASCADE;
 END;
 
 
@@ -149,6 +150,15 @@ if (isset($_REQUEST['install'])) {
 		<form>
 			<h2>Step 1. Database Access Information</h2>
 			<p>
+	Make sure database and user are created. Use 
+<pre>
+<tt>create database [dbname];</tt>
+<tt>create user 'username'@'locahost' identified by 'password';</tt> 
+<tt>grant all on db.* to 'username'@'localhost';</tt>
+</pre>
+to properly setup database, user, and privileges first. 
+</p>
+<p>
 			<table>
 				<tr><td>DB name:</td><td><input type = 'text' name='dbname' /></td></tr>
 				<tr><td>DB host:</td><td><input type = 'text' name='dbhost' /></td></tr>
