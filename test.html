@@ -1,27 +1,164 @@
 <!DOCTYPE html>
-<html>
-<head>
-<meta charset="ISO-8859-1">
-<title>Insert title here</title>
-</head>
-<body>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="Inventory Database">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<select name="websites" size="1">
-                <option selected>Select</option>
-                <option  value="#GENERAL MEDICINE">General Medicine</option>
-                <option value="#CARDIOLOGY">Cardiology</option>
-                <option value="#PAEDIATRICS">Paediatrics</option>
-                <option value="#NEUROLOGY">Neurology</option>
-        <option value="#GASTROENTEROLOGY">Gastroenterology</option>
-<input type="button" value="Go!"
-                onClick="location=document.testform.websites.options
-                [document.testform.websites.selectedIndex].value">
+    <link rel="icon" href="img/favicon.ico">
+    <title>Inventory Database</title>
+    
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    
+    <link type="text/css" href="css/invstyle-test.css" rel="Stylesheet">
+    
+  </head>
+  <body>
+    
+    <nav class="navbar navbar-default" role="navigation">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+	<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+	  <span class="sr-only">Toggle navigation</span>
+	  <span class="icon-bar"></span>
+	  <span class="icon-bar"></span>
+	  <span class="icon-bar"></span>
+	</button>
+	<a class="navbar-brand" href="#">
+	  <span class="glyphicon glyphicon-search"></span> 
+	  Inventory DB
+	</a>
 
-<a name="GENERAL MEDICINE">GENERAL MEDICINE</a>
+      </div>
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse navbar-ex1-collapse">
+	<ul class="nav navbar-nav">
+	  <li><a href="./index.php">Home</a></li>
+	  <li><a href="./index.php?logout=1">Logout</a></li>
+	  <li class="dropdown">
+	    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tools <b class="caret"></b></a>
+	    <ul class="dropdown-menu">
+	      <li><a href='./change_user_profile.php'> Change Profile (Name, Email, or Password) </a></li>
+	      <li><a href='index.php?approve=1'> Check Loaner or Return Request from Other Users</a></li>
+	      <li><a href='index.php?uploadfile=1'> Upload a CSV file</a></li>
+	      <li><a href='index.php?editpart=1'> Edit Part</a></li>
+	      <li><a href='index.php?searchall=1'> List All Parts</a></li>
+	      <li><a href='index.php?searchalldetail=1'>List All Parts Detailed</a></li>
+	      <li><a href='help.php'>User Guide</a></li><li class='divider'></li><li><a href='./manage.php'> User Group Management</a></li>				        </ul>
+	  </li>
+	  <li><a href="help.php">User Guide</a></li>
+	  <li><span id='notice'></span></li>
+	</ul>
+	<p class="navbar-text pull-right">
+	  Welcome Jingshao!
+	</p>
+      </div><!-- /.navbar-collapse -->
+    </nav>
 
-<form name="testform">
-<input type="submit"/>
-</form>
+    <div id='message'></div>
 
-</body>
+    <div id='main' class="container-fluid">
+      
+      <h3>Part Detail Information</h3>
+      <table>
+        <tr><td>Serial: </td><td>511242</td></tr>
+        <tr><td>Model: </td><td>XCELLON-FLEX COMBO 10/40GE</td></tr>
+        <tr><td>Owner: </td><td>Jingshao Chen</td></tr>
+        <tr><td>Status: </td><td>in</td></tr>
+        <tr><td>Comment: </td><td>In demo chassis in NGN lab</td></tr>
+      </table>
+      <div class="row">
+        <div class="col-xs-10">
+          <hr>
+          <a href='/inv/index.php?serial=511242&history=1'>Show History</a> 
+          | 
+          <a href='/inv/index.php?serial=511242&editpart=1'>Edit Part</a>
+          <hr>
+        </div>
+      </div>
+        
+      <h3>Inventory Query</h3>
+
+      <div id='transaction_form'>
+        <form class='form-horizontal' action='./index.php' name='transaction' method='post' role="form">  
+          <table>
+          <tr>
+            <td>
+            <label class="control-label" for='serial'>Serial Number:</label>
+            </td>
+            <td>
+              <input class="form-control" type='text' name='serial' id='serial' value='511242'/>
+            </td>
+          </tr>
+
+          <tr>
+            <td>
+            <label class="control-label" for='model'>Model Name:</label>
+            </td>
+            <td>
+              <input class="form-control" type='text' name='model' id='model' value=''/>
+            </td>
+          </tr>
+          <tr>
+            <td>
+            <label class='control-label'  for='customer'>Customer Name: </label>
+            </td>
+            <td>
+              <input class="form-control" type='text' name='customer' id='customer' value=''/>
+            </td>
+          </tr>
+          <tr>
+            <td>
+            <label class='control-label'  for='company'>Company Name:</label>
+            </td>
+            <td>
+              <input class="form-control" type='text' name='company' id='company' value=''/>
+            </td>
+          </tr>
+          <tr>
+            <td>
+            <label class='control-label'  for='duebackin'>Due back (days):</label>
+            </td>
+            <td>
+              <input class="form-control" type='text' name='duebackin' id='duebackin' value=''/>
+            </td>
+          </tr>
+
+          <tr>
+          <td>
+            <label class='control-label'  for='comment'>Comment:</label>
+          </td>
+          <td>
+              <textarea class='form-control' name='comment' id='comment' rows="3"></textarea>
+          </td>
+          </tr>
+          </table>
+
+          <div class = 'form-group'>
+            <button class = 'btn  btn-primary' type='submit' name='search'>Search</button>
+
+            <span class='btn-group'>
+              <button class = 'btn btn-success' type='submit' name='checkin'>Check In</button>
+              <button class = 'btn btn-danger' type='submit' name='checkout'>Check Out</button>
+            </span>
+            
+            <span class='btn-group'>
+              <button class = 'btn btn-info' type='submit' name='searchall'>List All</button>
+              <button class = 'btn btn-warning' type='submit' name='searchalldetail'>List All Detailed</button>
+            </span>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <!-- jQuery is required by bootstrap script -->
+    <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  </body>
 </html>
