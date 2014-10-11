@@ -6,6 +6,8 @@
         Purpose of the stylesheet follows.
 */
 
+.nav, .pagination, .carousel, .panel-title a { cursor: pointer; }
+
 #message {
 	position:fixed;
 	top:40px;

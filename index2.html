@@ -1,0 +1,79 @@
+ <!DOCTYPE HTML>
+ <html ng-app="invApp">
+   <head>
+     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+     <meta name="keywords" content="Inventory Database" />
+     
+     <link rel="shortcut icon" href="img/favicon.ico" />
+     <title>InvDB</title>
+     
+     
+     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+     <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+     
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <!-- Bootstrap -->
+     <!-- Latest compiled and minified CSS -->
+     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+     <link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
+  
+     <!-- angularjs ui bootstrap -->
+     <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.js"></script>
+     <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular-route.js"></script>
+     <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.11.2.js"></script>
+     
+     <!-- my invApp js file -->
+     <script type='text/javascript' src='js/invApp.js'></script>
+     
+   </head>
+   <body>
+     <div ng-controller="invController"> <!-- invController -->
+     <nav class="navbar navbar-default" role="navigation">
+       <!-- Brand and toggle get grouped for better mobile display -->
+       <div class="navbar-header">
+	 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+	   <span class="sr-only">Toggle navigation</span>
+	   <span class="icon-bar"></span>
+	   <span class="icon-bar"></span>
+	   <span class="icon-bar"></span>
+	 </button>
+	 <a class="navbar-brand" href>
+	   <span class="glyphicon glyphicon-search"></span> 
+	   Inventory DB
+	 </a>
+       </div> <!-- navbar-header -->
+       <!-- Collect the nav links, forms, and other content for toggling -->
+       <div class="collapse navbar-collapse navbar-ex1-collapse">
+	 <ul ng-hide="needlogin" class="nav navbar-nav">
+	   <li><a href="#/">Home</a></li>
+	   <li><a href="#/logout">Logout</a></li>
+	   <li class="dropdown" on-toggle="menuToggled(open)">
+	     <a href class="dropdown-toggle">Tools <b class="caret"></b></a>
+	     <ul class="dropdown-menu">
+	       <li><a href='./change_user_profile.php'> Change Profile (Name, Email, or Password) </a></li>
+	       <li><a href='index.php?approve=1'> Check Loaner or Return Request from Other Users</a></li>
+	       <li><a href='index.php?uploadfile=1'> Upload a CSV file</a></li>
+	       <li><a href='index.php?editpart=1'> Edit Part</a></li>
+	       <li><a href='index.php?searchalldetail=1'>List All Parts Detailed</a></li>
+	       <li><a href='#/help'>User Guide</a></li>
+	       <li class='divider'></li>
+	       <li><a href='./manage.php'> User Group Management</a></li>
+	     </ul>
+	   </li> <!-- dropdown-manu -->
+	   <li><a href="#/help">User Guide</a></li>
+	   <li><span id='notice'></span></li>
+	 </ul> <!-- navbar-nav -->
+	 <p ng-hide="needlogin" class="navbar-text pull-right">
+	   Welcome {{firstname}}
+	 </p>
+       </div><!-- /.navbar-collapse -->
+     </nav>
+
+     <div class="container">
+       <div ng-view></div>
+     </div>
+     </div>
+   </body>
+ </html>
+
