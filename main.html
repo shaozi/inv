@@ -1,4 +1,47 @@
-<div class="input-group">
-  <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
-  <input type="text" class="form-control" placeholder="Username">
+<div class="row">
+  <div class="col-sm-4 col-sm-offset-4">
+    <div class="form-group">
+      <input type="text" ng-model='search.$' placeholder='Search' class="form-control"/>
+      <div class="radio">
+	<label>
+	  <input type="radio" value="" ng-model='search.status'> 
+	  Show all
+	</label>
+	<label>
+	  <input type="radio" value="in" ng-model='search.status'> 
+	  Show in only
+	</label>
+	<label>
+	  <input type="radio" value="out" ng-model='search.status'> 
+	  Show out only
+	</label>
+
+      </div>
+    </div>
+  </div>
 </div>
+
+<table class="table">
+  <tr>
+    <th><a href ng-click="predicate='serial';reverse=!reverse">Serial</a></th>
+    <th><a href ng-click="predicate='model';reverse=!reverse">Model</a></th>
+    <th><a href ng-click="predicate='status';reverse=!reverse">Status</a></th>
+    <th><a href ng-click="predicate='customer_name';reverse=!reverse">Customer</th>
+    <th><a href ng-click="predicate='loandate';reverse=!reverse">Loan out on</th>
+    <th><a href ng-click="predicate='duebackdate';reverse=!reverse">Dueback on</th>
+    <th><a href ng-click="predicate='overduedays';reverse=!reverse">Overdue (days)</th>
+    <th><a href ng-click="predicate='realname';reverse=!reverse">Handled by</th>
+  </tr>
+  <tr class="{{part.status=='in'? '': 
+    (part.overduedays>0 ? 'danger':'warning')}}"
+ng-repeat='part in parts.parts | filter:search | orderBy:predicate:reverse'>
+    <td><a href="#/detail/{{part.serial}}">{{part.serial}}</a></td>
+  <td>{{part.model}}</td>
+  <td>{{part.status}}</td>
+  <td>{{part.customer_name}}</td>
+  <td>{{part.loandate}}</td>
+  <td>{{part.duebackdate}}</td>
+  <td>{{part.overduedays}}</td>
+  <td>{{part.realname}}</td>
+</tr>
+</table>

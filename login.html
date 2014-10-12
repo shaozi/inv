@@ -1,10 +1,11 @@
-<div class="form-signin">
+<form ng-submit="login()" class="form-signin">
   <h2 class="form-signin-heading">Please log in</h2>
   <input name='username' type="text" class="form-control" placeholder="User name" ng-model='username' autofocus>
   <input name='password' type="password" class="form-control" placeholder="Password" ng-model='password'>
   <label class="checkbox">
     <input type="checkbox" value="remember-me"> Remember me
   </label>
-  <button name='login' class="btn btn-block btn-primary" ng-click='login()'>Log in</button>
+  <input type="submit" name='login' class="btn btn-block btn-primary" 
+	 value="Log in"/>
   <div>{{loginMessage}} {{firstname}}</div>
-</div>
+</form>

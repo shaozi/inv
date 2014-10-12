@@ -92,7 +92,7 @@ function authenticate() {
     $stmt->bindParam(':username', $_SESSION['username']);
     $stmt->execute();
     if ($stmt->rowCount()==1) {
-      if ($ARGS->action =='logout') {
+      if (isset($ARGS->action) && $ARGS->action =='logout') {
 	clear_session();
 	return FAIL;
       }
@@ -102,7 +102,10 @@ function authenticate() {
       return FAIL;
     }
   }
-  if ( $ARGS->action=='login') {
+
+  if ( isset($ARGS->action) && $ARGS->action=='login') {
+    if (isset($ARGS->username) &&
+        isset($ARGS->password) ) {
       $username = strtolower(trim($ARGS->username));
       $password = trim($ARGS->password);
       
@@ -118,6 +121,7 @@ function authenticate() {
 	$_SESSION['username'] = $username;
 	return PASS;
       }
+    }
   }
   return FAIL;
 }
@@ -196,13 +200,6 @@ function My_query_ret() {
 function escape_string($s, $keep_case = 1) {
 	if (! isset($s)) return '';
 	return trim($s);
-}
-
-function print_error_msg($msg) {
-	print("<div style='height:32px'><div style='float:left;' class='error'>$msg</div></div>");
-}
-function print_info_msg($msg) {
-	print("<div style='height:32px'><div style='float:left;' class='info'>$msg</div></div>");
 }
 
 function check_permission($username, $serial) {
@@ -293,168 +290,6 @@ function get_same_group_users ($username) {
 	return $users;
 }
 
-function deletepart($info=array()) {
-	global $realname;
-	if ($info['serial'] == '') {
-		print_error_msg("ERROR: serial is empty!");
-		return;
-	}
-	// sanity check
-	$result = My_query("select serial from parts where
-                      serial=?", $info['serial']);
-	if ($result->rowCount() == 0) {
-		print_error_msg("ERROR: no parts found");
-		return;
-	}
-	// check owner
-	$permit = check_permission($_SESSION['username'], $info['serial']);
-
-	if ($permit['permission']==NONE_EXIST) {
-		$info['err_message'] = "$model with serial number ".
-		strtoupper($serial). " does not exist. You cannot delete it.";
-		print_transact_form($info);
-		return;
-	}
-	if ($permit['permission']!=RIGHT_FULL) {
-		$info['err_message'] = "$model with serial number ".
-		strtoupper($serial). " does not belong to you. You cannot delete it.";
-		print_transact_form($info);
-		return;
-	}
-	db_lock_all_tables();
-	My_query("DELETE from parts where serial=?", $info['serial']);
-	My_query("DELETE from transaction where serial=?", $info['serial']);
-	print_info_msg("$info[serial] is deleted");
-	My_query("UNLOCK TABLES");
-}
-
-function updatepart($info=array()) {
-	/*print("<pre>");
-	 print_r($info);
-	 print("</pre>");*/
-	global $realname;
-	if ($info['serial'] == '') {
-		print_error_msg("ERROR: serial is empty!");
-		return;
-	}
-
-	// sanity check
-	if ($info['old_serial'] == '') {
-		$info['old_serial'] = $info['serial'];
-	}
-	$result = My_query("select serial from parts where
-                      serial='$info[old_serial]'");
-	if ($result->rowCount()==0) {
-		print_error_msg("ERROR: no parts found");
-		return;
-	}
-	// check owner
-	$permit = check_permission($_SESSION['username'], $info['old_serial']);
-
-	if ($permit['permission']!=RIGHT_FULL) {
-		$info['err_message'] = "Permission violation. Edit failed.";
-		print_transact_form($info);
-		return FALSE;
-	}
-
-
-	db_lock_all_tables();
-	if ($info['serial'] != $info['old_serial']) {
-		// update serial
-		// first check if serial exists
-		$sql_res = My_query("select serial from parts
-	                 where serial=?", $info['serial']);
-		if ($sql_res->rowCount() != 0) {
-			print_error_msg("ERROR: Parts with SN=$info[serial] exists.");
-			My_query("UNLOCK TABLES");
-			return;
-		}
-		// update
-		My_query("update parts,transaction set parts.serial=?,
-                               parts.model=?,
-                               parts.owner=?,
-                               parts.part_comment=?,
-                               transaction.transaction_comment=?
-              where parts.serial = ? AND parts.transaction_id = transaction.transaction_id",
-		$info['serial'], $info['model'], $info['owner'], 
-		$info['comment'],
-		$info['trans_comment'], 
-		$info['old_serial']);
-		My_query("update transaction set serial=?
-              where serial=?", $info['serial'], $info['old_serial']);
-	} else {
-		// update
-		My_query("update parts,transaction set parts.model=?,
-                               parts.owner=?,
-                               parts.part_comment=?,
-                               transaction.transaction_comment=?
-              where parts.serial =? AND parts.transaction_id = transaction.transaction_id",
-		$info['model'], $info['owner'], $info['comment'], 
-		$info['trans_comment'], $info['old_serial']);
-	}
-	My_query("UNLOCK TABLES");
-	print_info_msg("Part updated.");
-	showdetail($info);
-}
-
-function print_new_checkin_form($info = array()) {
-	global $realname;
-	//print_r($info);
-	if (isset($info['err_message'])) {
-		print_error_msg("ERROR: $info[err_message]");
-	} else {
-		print_info_msg("This item is not in database. <br />
-       Please fill the following form and
-       click <b>Add to Database</b> button to add it into the database.");
-	}
-	if (isset($info['message'])) {
-		print_info_msg("$info[message]");
-	}
-	print <<<END
-	
-    <form action='./index.php' name='new_checkin' method='post'>
-    <p>
-    <label for='serial'>Serial Number:</label>
-    <br />
-    <input type='text' class='itext' name='serial' id='serial'
-           value='$_POST[serial]'/>
-    <br />
-    <label for='model'>Model Name:</label>
-    <br />
-    <input type='text' class='itext' name='model' id='model'
-           value='$_POST[model]'/>
-    </p>
-    <p>
-    <label for='owner'>Part Owner: </label>
-    <br />
-    <select class='itext' name='owner' id='owner'>
-END;
-
-	$users=get_same_group_users($info['username']);
-
-	//print_r($users);
-
-	foreach ($users as $owner_name) {
-		echo "<option value='$owner_name'>" . $realname[$owner_name] . "</option>";
-	}
-	print <<<END
-	</select>
-     </p>
-
-     <p>
-     <label for='comment'>Comment:</label>
-     <br />
-     <textarea rows='2' cols='30' class='itext' name='comment' id='comment'>$_POST[comment]</textarea>
-     </p>
-     <p>
-     <input type='submit' class='btn btn-default' name='new_checkin' value=' Add to Database ' />
-     <input type='submit' class='btn btn-default' name='cancel' value=' Cancel ' />
-     </p>
-     </form>
-END;
-
-}
-
 
 /**
  database struture
@@ -479,7 +314,49 @@ END;
  ");
  */
 
+function get_all_parts() {
 
+  $username=$_SESSION['username'];
+  
+  $user_restrict_subq = 
+    "select distinct `user` from user_group_mapping
+     where  (`group` in (select `group` from user_group_mapping as ugmap
+                          where user=? and `group` is not NULL)) 
+     or (user=? and `group` is NULL)";
+  
+  $result = My_query("
+	      select *,
+                     DATE(transaction.date) as loandate,
+                     DATE(ADDDATE(transaction.date, transaction.duebackin)) 
+                     as duebackdate,
+                     datediff(now(), transaction.date) as daysout,
+                     case
+                       when datediff(now(), transaction.date) > duebackin 
+                       then datediff(now(), transaction.date)-duebackin
+                       else 0
+                     end as overduedays
+	      from parts LEFT JOIN transaction ON
+	      ( parts.serial = transaction.serial AND
+	        parts.transaction_id = transaction.transaction_id )
+              LEFT JOIN customer ON
+               transaction.customer_id = customer.customer_id
+              LEFT JOIN user on
+               transaction.username = user.username
+	      where 
+	       parts.owner in ( $user_restrict_subq ) or parts.owner=?
+	      ",
+			$username, $username, $username);
+
+  $count = $result->rowCount();
+
+  $parts_array = $result->fetchAll(PDO::FETCH_ASSOC);
+  print(json_encode(
+		    array('result'=>'pass', 
+			  'parts'=>$parts_array,
+			  'count'=>$count)
+		    ));
+  
+}
 
 function print_search_result($info=array()) {
 	global $realname;
@@ -786,8 +663,9 @@ function get_info() {
 	global $get_info_done;
 	if ($get_info_done) return;
 	$get_info_done = TRUE;
-
-
+	global $ARGS;
+	
+	
 	$serial = isset($_REQUEST['serial']) ? escape_string($_REQUEST['serial']) : '';
 	$comment = isset($_POST['comment']) ? escape_string($_POST['comment'], 1) : '';
 	$trans_comment = isset($_POST['trans_comment']) ? escape_string($_POST['trans_comment'], 1) : '';
@@ -1784,64 +1662,5 @@ function debug_print($v) {
 	if (DEBUG) var_dump($v);
 }
 
-function print_html_header($page) {
-	?>
-
-  <!DOCTYPE HTML>
-  <html>
-  <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="keywords" content="Inventory Database" />
-  
-  <link rel="shortcut icon" href="img/favicon.ico" />
-  <title><?php echo $page;?></title>
-  
-  
-  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-  <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
-  <script src="https://code.jquery.com/ui/1.11.1/jquery-ui.min.js"></script>
-  
-  <script type='text/javascript' src='js/invlib.js'></script>
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Bootstrap -->
-  <!-- Latest compiled and minified CSS -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-  <!-- Latest compiled and minified JavaScript -->
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-
-  <link type="text/css" href="css/invstyle.css" rel="Stylesheet" />
-
-	<?php
-	switch ($page) {
-		case HOMEPAGE:
-		case CHANGEPROFILEPAGE:
-		case HELP:
-			print <<<END
-		<script type='text/javascript' src='js/homepage.js'></script>
-		<script type="text/javascript" src="jq/tablesorter/jquery.tablesorter.min.js"></script>
-		<link type="text/css" href="./jq/tablesorter/themes/blue/style.css" rel="Stylesheet" />
-		
-END;
-			break;
-		case MANAGEPAGE:
-			print <<<END
-		<script type='text/javascript' src='js/manage.js'></script>
-		 
-END;
-			break;
-		default:
-			break;
-	}
-
-	?>
-
-
-</head>
-<body>
-
-<?php
-
-}
 
 ?>
