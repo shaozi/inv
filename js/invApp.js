@@ -25,6 +25,8 @@ angular.module('invApp')
 			  $location.path('/');
 		      } else {
 			  $rootScope.needlogin = true;
+			  $location.path("/login");
+			  $scope.loginMessage = "Log in failed";
 		      }
 		  });
     };
@@ -32,7 +34,7 @@ angular.module('invApp')
     $scope.get_all_parts = function() {
 	if (typeof $rootScope.needlogin == 'undefined' || $rootScope.needlogin )
 	    return;
-	$http.post("query.php", {action:'query'})
+	$http.post("query.php", {action:'get_all_parts'})
 		  .success(function(data, status, headers, config) {
 		      console.log(data);
 		      if (data.result == 'pass') {
@@ -59,25 +61,61 @@ angular.module('invApp')
 	$location.path('/login');
 	return;
     }
-
     $scope.serial = $routeParams.serial;
-    var parts = null;
-    var part = null;
-    if (typeof $rootScope.parts == 'object') {
-	parts = $rootScope.parts.parts;
-	for (var i = 0; i< parts.length; i++) {
-	    console.log(parts[i].serial);
-	    if (parts[i].serial == $scope.serial) {
-		console.log("found");
-		$scope.part = parts[i];
-		break;
-	    }
-	}
-    }
+
+    // get part from database
+    $scope.get_part_w_serial = function(serial) {
+	$http.post("query.php", {action:'get_part_w_serial',
+				 serial: serial})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    data.part.overduedays = parseInt(data.part.overduedays);
+		    if (data.part.status=="in") {
+			data.part.customer_name = null;
+			data.part.company = null;
+			data.part.loandate = null;
+			data.part.duebackdate = null;
+			data.part.overduedays = null;
+		    }
+		    $scope.part = data.part;
+		} else {
+		    $scope.error = data;
+		}
+	    });
+    };
+    $scope.get_part_w_serial($scope.serial);
     
-    if (part == null) {
-	// get part from database
-    }
+    $scope.checkin = function() {
+	$http.post("transact.php", {action:'checkin',
+				    serial: $scope.serial})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    $scope.get_part_w_serial($scope.serial);
+		} else {
+		    $scope.error = data;
+		}
+	    });
+	
+    };
+    
+    $scope.checkout = function() {
+	$http.post("transact.php", {action:'checkout',
+				    serial: $scope.serial,
+				    customer: $scope.customer_name,
+				    company: $scope.company,
+				    duebackin: $scope.duebackin,
+				    comment: $scope.comment})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    $scope.get_part_w_serial($scope.serial);
+		} else {
+		    $scope.error = data;
+		}
+	    });
+    };
 })
 
 .controller('logoutController', function($http, $rootScope, $scope, $location) {
@@ -116,6 +154,7 @@ angular.module('invApp')
 	    controller: 'detailController'
 	});
 })
+
 .run(function($rootScope, $http, $location){
     if (typeof $rootScope.needlogin != 'undefined' && 
 	$rootScope.needlogin==false )

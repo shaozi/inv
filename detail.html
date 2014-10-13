@@ -1,6 +1,55 @@
+<h1>Details of {{serial}}</h1>
+<table class='table' ng-hide="error">
+  <tr><th>Serial number:</th><td>{{part.serial}}</td></tr>
+  <tr><th>Model:</th><td>{{part.model}}</td></tr>
+  <tr><th>Owner:</th><td>{{part.owner}}</td></tr>
+  <tr><th>Status:</th><td>{{part.status}}</td></tr>
+  <tr><th>Note:</th><td>{{part.part_comment}}</td></tr>
+  <tr ng-show="part.status=='out'">
+    <th>Customer:</th><td>{{part.customer_name}}</td>
+  </tr>
+  <tr ng-show="part.status=='out'">
+    <th>Company:</th><td>{{part.company}}</td>
+  </tr>
+  <tr ng-show="part.status=='out'">
+    <th>Loan out date:</th><td class="part.overduedays>0?'danger':'warning'">
+      {{part.loandate}}</td>
+  </tr>
+  <tr ng-show="part.status=='out'">
+    <th>Duback date:</th><td>{{part.duebackdate}}</td>
+  </tr>
+  <tr ng-show="part.status=='out'">
+    <th>Overdue (days):</th><td>{{part.overduedays}}</td>
+  </tr>
+  <tr ng-show="part.status=='out'">
+    <th>Handled by:</th><td>{{part.realname}}</td>
+  </tr>
+</table>
+<div class='alert alert-danger' ng-show="error">{{error.info}}</div>
 
-<div>serial: {{serial}}</div>
-
-<div>
-part: {{part}}
+<div ng-show="part.status=='out'">
+  <h1>Actions</h1>
+  <button class="btn btn-success" ng-click="checkin()">Check this item back in</button>
 </div>
+
+<div ng-show="part.status=='in'">
+  <h1>Actions</h1>
+  <form>
+    <table>
+      <tr><td>Customer name</td><td><input class="form-control" ng-model="customer_name" placeholder="Customer name"></td></tr>
+      <tr><td>Company</td><td><input class="form-control"  ng-model="company" placeholder="Company"></td></tr>
+      <tr><td>Due back in</td><td>
+	<div class="input-group">
+	  <input class="form-control"  ng-model="duebackin">
+	  <span class="input-group-addon">days</span>
+	</div>
+      </td></tr>
+      <tr><td>Comment</td><td><textarea class="form-control"  rows="5" ng-model="comment"></textarea>
+      </td></tr>
+      <tr><td> </td><td><input type="submit" 
+	   class="btn btn-danger" value="Check this item out" ng-click="checkout()" />
+      </td></tr>
+
+    </table>
+  </form>
+</div

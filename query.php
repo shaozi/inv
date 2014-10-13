@@ -12,6 +12,18 @@ if($result!=PASS) {
 			  'error'=>'needlogin', 
 			  'info'=>'Authentication failed')));
  } else {
-  get_all_parts();
+   switch($ARGS->action) {
+      case 'get_part_w_serial':
+      get_part_w_serial($ARGS->serial);
+      break;
+      case 'get_all_parts':
+      get_all_parts();
+      break;
+      default:
+      print(json_encode(array('result'=>'fail',
+			      'error'=>'unknown action',
+			      'info'=>'cannot recognize action '. $ARGS->action)
+			));
+  }
  }
 ?>

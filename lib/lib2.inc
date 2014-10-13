@@ -358,6 +358,60 @@ function get_all_parts() {
   
 }
 
+function get_part_w_serial($serial) {
+
+  $username=$_SESSION['username'];
+  
+  $user_restrict_subq = 
+    "select distinct `user` from user_group_mapping
+     where  (`group` in (select `group` from user_group_mapping as ugmap
+                          where user=? and `group` is not NULL)) 
+     or (user=? and `group` is NULL)";
+  
+  $result = My_query("
+	      select *,
+                     DATE(transaction.date) as loandate,
+                     DATE(ADDDATE(transaction.date, transaction.duebackin)) 
+                     as duebackdate,
+                     datediff(now(), transaction.date) as daysout,
+                     case
+                       when datediff(now(), transaction.date) > duebackin 
+                       then datediff(now(), transaction.date)-duebackin
+                       else 0
+                     end as overduedays
+	      from parts LEFT JOIN transaction ON
+	      ( parts.serial = transaction.serial AND
+	        parts.transaction_id = transaction.transaction_id )
+              LEFT JOIN customer ON
+               transaction.customer_id = customer.customer_id
+              LEFT JOIN user on
+               transaction.username = user.username
+	      where 
+	      parts.serial = ? and
+	       (parts.owner in ( $user_restrict_subq ) or parts.owner=?)
+	      ",
+		$serial, $username, $username, $username);
+
+  $count = $result->rowCount();
+  if ($count == 0) {
+    print(json_encode(
+		array('result'=>'fail',
+                      'error'=>'nopart',
+                      'info'=>"Either the serial number $serial 
+		               does not exist, or 
+                               you don't have permission to view it.")
+	             )
+          );
+  } else {     
+    $part = $result->fetch(PDO::FETCH_ASSOC);
+    print(json_encode(
+		    array('result'=>'pass', 
+			  'part'=>$part
+			 )
+		    ));
+  }
+}
+
 function print_search_result($info=array()) {
 	global $realname;
 	global $SELECT_DB_MAPPING;
