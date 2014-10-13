@@ -19,7 +19,7 @@
     <th>Duback date:</th><td>{{part.duebackdate}}</td>
   </tr>
   <tr ng-show="part.status=='out'">
-    <th>Overdue (days):</th><td>{{part.overduedays}}</td>
+    <th>Overdue</th><td>{{part.overduedays}} day<span ng-show="part.overduedays>0">s</span></td>
   </tr>
   <tr ng-show="part.status=='out'">
     <th>Handled by:</th><td>{{part.realname}}</td>
@@ -27,12 +27,16 @@
 </table>
 <div class='alert alert-danger' ng-show="error">{{error.info}}</div>
 
-<div ng-show="part.status=='out'">
+<div ng-show="part.status=='out'" style="padding-bottom: 50px">
   <h1>Actions</h1>
-  <button class="btn btn-success" ng-click="checkin()">Check this item back in</button>
+  <div class="row">
+    <div class="col-sm-4">
+      <button class="btn btn-lg btn-block btn-success" ng-click="checkin()">Check this item back in</button>
+    </div>
+  </div>
 </div>
 
-<div ng-show="part.status=='in'">
+<div ng-show="part.status=='in'" style="padding-bottom: 50px">
   <h1>Actions</h1>
   <form>
     <table>
@@ -47,7 +51,7 @@
       <tr><td>Comment</td><td><textarea class="form-control"  rows="5" ng-model="comment"></textarea>
       </td></tr>
       <tr><td> </td><td><input type="submit" 
-	   class="btn btn-danger" value="Check this item out" ng-click="checkout()" />
+	   class="btn btn-lg btn-block btn-danger" value="Check this item out" ng-click="checkout()" />
       </td></tr>
 
     </table>
