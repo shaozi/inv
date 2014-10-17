@@ -5,7 +5,6 @@
  */
 $db_var = array();
 $realname = array();
-$get_info_done = FALSE;
 $dbh;
 $config_file = dirname($_SERVER['SCRIPT_FILENAME']).'/config.php';
 if (!file_exists($config_file)) {
@@ -412,510 +411,157 @@ function get_part_w_serial($serial) {
   }
 }
 
-function print_search_result($info=array()) {
-	global $realname;
-	global $SELECT_DB_MAPPING;
-	$MYTSTP = time();
-	$in = 0;
-	$out = 0;
-	$result_in = null;
-	$result_out = null;
+function transact($request) {
+  /*
+   * transact is a consolidated function to handle both 
+   * check in and check out a part.
+   *
+   * $request: checkin or checkout
+   */
+  global $realname;
+  global $ARGS;
 
-	$username=$_SESSION['username'];
+  $mysql_date = date("Y-m-d H:i:s");
 
-	$user_restrict_subq = "select distinct `user` from user_group_mapping
-    		 where  (`group` in (select `group` from user_group_mapping as ugmap
-    		                     where user=? and `group` is not NULL)) 
-    	         or (user=? and `group` is NULL)";
+  if (isset($ARGS->serial)) 
+    $serial = strtolower(trim($ARGS->serial));
+  else {
+    print(json_encode(array('result'=>'fail', 'error'=>'noserial',
+			    'info'=>'Missing serial number')));
+    return FALSE;
+  }
+  if (strlen($serial) == 0) {
+    print(json_encode(array('result'=>'fail', 'error'=>'noserial',
+			    'info'=>'Missing serial number')));
+    return FALSE;
+  }
 
+  if (isset($ARGS->comment)) {
+    $comment = trim($ARGS->comment);
+  } else {
+    $comment = '';
+  }
 
-	if ($info['serial']) {
-		$search_critiria = " parts.serial regexp ? ";
-		$search_var = $info['serial'];
-	} else if ($info['model']) {
-		$search_critiria = " parts.model regexp ? ";
-		$search_var = $info['model'];
-	} else if ($info['customer']) {
-		$search_critiria = " customer.customer_name regexp ? ";
-		$search_var=$info['customer'];
-	} else if ($info['company']) {
-		$search_critiria = " customer.company regexp ? ";
-		$search_var = $info['company'];
-	} else {
-		$info['err_message'] = "What do you want to search?";
-		print_transact_form($info);
-		return;
-	}
+  $custmer_id = 0;
+  $username=$_SESSION['username'];
+  $user_email=My_query_ret("select email from user where username=?", 
+			   $_SESSION['username']);
 
+  /*print("<pre>info = ");
+    print_r($info);
+    print("</pre>");*/
 
-	if ($info['serial'] || $info['model'] ) {
-		/*
-		 *
-		 $result_in = My_query("select *, part_comment as comment from parts where
-		 $search_critiria
-		 and status='in'
-		 and owner in ( $user_restrict_subq )
-		 order by $in_orderby");
-		 */
-		$result_in = My_query("
-	      select
-	       *,
-	      parts.part_comment as comment,
-	      parts.serial as serial
-	      
-	      from parts LEFT JOIN transaction ON
-	      ( parts.serial = transaction.serial AND
-	        parts.transaction_id = transaction.transaction_id )
-	      where
-	      $search_critiria and parts.status='in'
-	      AND (parts.owner in ( $user_restrict_subq ) or parts.owner=?)
-	      ",
-	      $search_var, $username, $username, $username);
+  db_lock_all_tables();
+  $sql_res = My_query("select * from
+		 parts JOIN transaction 
+		 ON parts.transaction_id = transaction.transaction_id
+		 where parts.serial=?", $serial);
+  if ($sql_res->rowCount() == 0) {
+    print(json_encode(array('result'=>'fail', 'error'=>'wrongserial',
+			    'info'=> 'Cannot find part with S/N: '
+			    .strtoupper($serial) )));
+    return FALSE;
+  }
 
-	      $in = $result_in->rowCount();
-	} else {
-		$result_in = NULL;
-		$in = 0;
-	}
+  $part_array = $sql_res->fetch(PDO::FETCH_ASSOC);
+  $part_status = $part_array['status'];
+  $model = strtoupper($part_array['model']);
+  $transaction_action = $part_array['action'];
+  $transaction_username=$part_array['username'];
+  $old_transaction_id=$part_array['transaction_id'];
+  $old_customer_id=$part_array['customer_id'];
 
-	$result_out = My_query("
-      select *, 
-      parts.serial as serial,
-	  DATE(ADDDATE(transaction.date, transaction.duebackin)) as duebackdate
-      from parts LEFT JOIN ( transaction, customer ) ON
-      ( parts.serial = transaction.serial AND
-      transaction.customer_id = customer.customer_id AND
-      parts.transaction_id = transaction.transaction_id )
-      where
-      $search_critiria and parts.status='out'
-      AND (parts.owner in ( $user_restrict_subq ) or parts.owner=?)
-      ",
-      $search_var, $username, $username, $username);
+  if ($request=="checkout" and $part_status == 'out') {
+    print(json_encode(array('result'=>'fail', 'error'=>'alreadyout',
+			    'info' => "$model with serial number ".
+			    strtoupper($serial). " is out of stock")));
+    My_query("UNLOCK TABLES");
+    return FALSE;
+  } else if ($request=="checkin" and $part_status=='in') {
+    print(json_encode(array('result'=>'fail', 'error'=>'alreadyin',
+			    'info' => "$model with serial number ".
+			    strtoupper($serial)
+			    . " is in stock. No checking in needed")));
+    My_query("UNLOCK TABLES");
+    return FALSE;
+  } else if ($transaction_action=="request_checkout" 
+	     or $transaction_action=="request_checkin") {
+    print(json_encode(array('result'=>'fail', 'error'=>'alreadyin',
+			    'info'=> "$model with serial number ".
+			    strtoupper($serial). 
+			    " has been put on hold by a request from ".
+			    $realname[$transaction_username].
+			    ". Approve or deny the request before a new
+				 transaction can start.")));
+    My_query("UNLOCK TABLES");
+    return FALSE;
+  }
 
-      $out = $result_out->rowCount();
+  $permit = check_permission($_SESSION['username'], $serial);
 
-      if ($in + $out == 0) {
-      	if ($info['serial']) {
-      		$exist_check = My_query("select owner from parts where $search_critiria ", $search_var);
-      		if ($exist_check->rowCount() == 0) {
-      			if ($info['serial'] != ".") {
-      				$info['err_message'] = "Cannot find parts with serial "
-      				. strtoupper($info['serial']) .
-	                        "<br/>You can use the following to add a new item into
-	                        the database.";
-      				print_new_checkin_form($info);
-      				return;
-      			} else {
-      				$info['err_message'] = "You do not have anything in the database.";
-      			}
-      		} else {
-      			$exist_line = $exist_check->fetch();
-      			if ($info['serial'] != ".") {
-      				$info['err_message'] = "Part with serial number $info[serial]
-	                                    is owned by $exist_line[owner].";   
-      				print_transact_form($info);
-      				return;
-      			} else {
-      				$info['err_message'] = "You do not have anything in the database.";
-      			}
-      		}
-      	} else if ($info['model']) {
-      		$info['err_message'] = "Cannot find parts with model "
-      		. strtoupper($info['model']);
-      	} else if ($info['customer']) {
-      		$info['err_message'] = ucwords($info['customer']) .
-                                   " does not own any parts.";       
-      	} else if ($info['company']) {
-      		$info['err_message'] = ucwords($info['company']) .
-                                   " does not own any parts.";
-      	}
-      	print_transact_form($info);
-      	return;
-      }
-
-      // Printing results in HTML
-      echo "<h3>Search Result</h3>";
-      $msg = "Total " . ($in+$out). " items found, ";
-      if ($in == 0)
-      $msg .= "all are out.";
-      if ($out == 0)
-      $msg .= "all are in.";
-      if ($in and $out)
-      $msg .= "$in in and $out out.";
-      print_info_msg($msg);
-      $showswapincallout = 0;
-      $showswapoutcallout = 0;
-      if ($in) {
-
-      	echo "<div><h4>In Stock</h4>\n";
-      	echo "<table class='tablesorter' border='1' id='partintable'>";
-      	print("<thead>");
-      	if ($info['searchalldetail']) {
-      		// echo "<tr><th colspan='4'>In Stock</th></tr>";
-      		echo "<tr><th>SN</th><th>Model</th>
-        <th>Comment</th>
-        <th>Owner</th></tr>\n";
-      	} else {
-      		// echo "<tr><th colspan='3'>In Stock</th></tr>";
-      		echo "<tr><th>SN</th><th>Model</th>";
-      		echo "<th>Owner</th></tr>\n";
-      	}
-      	print("</thead><tbody>");
-      	$rownumber=0;
-      	while ($line = $result_in->fetch()) {
-      		//print_r($line);
-      		echo "<tr";
-      		if ($rownumber%2==0) print(' class="even" >');
-      		else print(' class="odd" >');
-      		$rownumber++;
-      		echo "<td>".
-                    "<a href='$_SERVER[PHP_SELF]?".
-                    "serial=$line[serial]&detail=1&timestamp=$MYTSTP'>";
-      		echo strtoupper($line['serial']);
-      		echo "</a>";
-      		if ($line['action']=='request_checkout') {
-      			print("*");
-      		}
-      		echo "</td>";
-      		echo "<td>". strtoupper($line['model'])."</td>";
-      		if ($info['searchalldetail']) {
-      			echo "<td>$line[part_comment]</td>\n";
-      		}
-      		echo "<td>".$realname[$line['owner']]."</td>\n";
-      		echo "</tr>\n";
-      	}
-      	print("</tbody>");
-      	echo "</table>\n";
-      	echo "</div>\n";
-      }
-      if ($out) {
-      	echo "<div><h4>Out of Stock</h4>";
-      	echo "<table class='tablesorter' border ='1' id='partouttable'>";
-      	print("<thead>");
-      	if ($info['searchalldetail']) {
-      		//echo "<tr><th colspan='9'>Out of Stock</th></tr>";
-      		echo "<tr><th>SN</th><th>Model</th><th>Customer</th>";
-      		echo "<th>Company</th>";
-      		echo "<th>Checked out by</th><th>Owner</th>";
-      		echo "<th type='int'>Days Out</th><th type='date'>Expected Date</th><th>Comment</th>";
-      	} else {
-      		//echo "<tr><th colspan='5'>Out of Stock</th></tr>";
-      		echo "<tr><th>SN</th><th>Model</th><th>Customer</th>";
-      		echo "<th>Company</th>";
-      		echo "<th>Owner</th>";
-      	}
-      	echo "</tr>\n";
-      	print("</thead><tbody>");
-      	$rownumber=0;
-      	while ($line = $result_out->fetch()) {
-      		
-      		//print_r($line);
-      		$short_customer_name = $line['customer_name'];
-      		echo "<tr";
-      		if ($rownumber%2==0) print(' class="even" >');
-      		else print(' class="odd" >');
-      		$rownumber++;
-      		echo "<td>".
-                    "<a href='$_SERVER[PHP_SELF]?".
-                    "serial=$line[serial]&detail=1&timestamp=$MYTSTP'>";
-
-      		echo strtoupper($line['serial']);
-      		echo "</a>";
-      		if ($line['action']=='request_checkin') {
-      			print("*");
-      			// get last transaction's details to display
-      			$last_trans_ret = My_query("select * from transaction
-      			      						where transaction_id = ?", $line['last_transaction_id']);
-      			$last_trans = $last_trans_ret->fetch();
-      			$line = array_merge($line, $last_trans);
-      		}
-      		echo "</td>";
-      		echo "<td>". strtoupper($line['model'])."</td>";
-      		echo "<td>". ucwords($short_customer_name)."</td>";
-      		echo "<td>";
-      		echo ucwords($line['company']);
-      		echo "</td>\n";
-
-      		if ($info['searchalldetail']) {
-      			echo "<td>";
-      			if (isset($realname[$line['username']])) echo $realname[$line['username']];
-      			else echo $line['username'];
-      			echo "</td>\n";
-      		}
-      		echo "<td>\n";
-      		echo $realname[$line['owner']];
-      		echo "</td>\n";
-      		if ($info['searchalldetail']) {
-      			/* Days out */
-      			$daysout = My_query_ret("select DATEDIFF(CURDATE(), '$line[date]')");
-
-      			/* due back date */
-      			$duebackdate = My_query_ret("select DATE(ADDDATE('$line[date]', $line[duebackin]))");
-
-      			/* Days remain */
-      			$daysremain =My_query_ret("select DATEDIFF('$duebackdate', CURDATE())");
-
-      			echo "<td>";
-      			echo $daysout;
-      			echo "</td>";
-      			echo "<td>";
-      			if ($daysremain <=0)
-      			print_error_msg($duebackdate);
-      			else
-      			print($duebackdate);
-      			echo "</td>";
-      			echo "<td>";
-      			echo $line['transaction_comment'];
-      			echo "</td>\n";
-      		}
-      		echo "</tr>\n";
-      	}
-      	print("</tbody>");
-      	echo "</table>\n";
-      	echo "</div>";
-      }
-      //echo "<br/>";
-      if ($showswapoutcallout) {
-      	echo "<a name = 'swapout'> * Indicate this is a swapped out part</a><br />";
-      }
-      if ($showswapincallout) {
-      	echo "<a name = 'swapin'> ** Indicate this is a swapped in part</a><br />";
-      }
-      echo "</p><div class='saperator'></div>";
-
-      //
-      // Free resultset
-      //if ($result_in != null) mysql_free_result($result_in);
-      //if ($result_out != null) mysql_free_result($result_out);
-      print_transact_form($info);
-}
-
-function print_login_form() {
-	print_page_title();
-    print <<<END
-<div class="container">
-
-      <form class="form-signin" action='./index.php' method='post'>
-        <h2 class="form-signin-heading">Please log in</h2>
-        <input name='username' type="text" class="form-control" placeholder="User name" autofocus>
-        <input name='password' type="password" class="form-control" placeholder="Password">
-<label class="checkbox">
-          <input type="checkbox" value="remember-me"> Remember me
-        </label>
-        <button name='login' class="btn btn-block btn-primary" type="submit">Log in</button>
-      </form>
-
-END;
-	if (isset($login_err)) echo "$login_err";
-	print("</div> <!-- /container -->");
-}
-
-/**
- *
- */
-function get_info() {
-	global $get_info_done;
-	if ($get_info_done) return;
-	$get_info_done = TRUE;
-	global $ARGS;
+  if ($permit['permission'] == RIGHT_RO) {
+    $transaction_action = "request_".$request;
+    // we will deal with this in the following section
+  } else if ($permit['permission'] == RIGHT_FULL) {
+    if ($request=="checkin") $transaction_action = "in";
+    else if ($request=="checkout") $transaction_action = "out";
+    else {
+      print(json_encode(array('result'=>'fail', 'error'=>'unknownrequest',
+			      'info'=>"Request is not checkin or checkout")));
+      My_query("UNLOCK TABLES");
+      return FALSE;
+    }
+  } else {
+    print(json_encode(array('result'=>'fail', 'error'=>'nopermission',
+			    'info'=> "You do not have right to ".$request." this item.")));
+    My_query("UNLOCK TABLES");
+    return FALSE;
+  }
 	
-	
-	$serial = isset($_REQUEST['serial']) ? escape_string($_REQUEST['serial']) : '';
-	$comment = isset($_POST['comment']) ? escape_string($_POST['comment'], 1) : '';
-	$trans_comment = isset($_POST['trans_comment']) ? escape_string($_POST['trans_comment'], 1) : '';
-	$model = isset($_REQUEST['model']) ? escape_string($_REQUEST['model']) : '';
-	$customer = isset($_POST['customer']) ? escape_string($_POST['customer']) : '';
-	$duebackin = isset($_POST['duebackin']) ? escape_string($_POST['duebackin']) : '';
-	$orderby = isset($_POST['orderby']) ? escape_string($_POST['orderby']) : '';
 
-	if (! is_numeric($duebackin) ) $duebackin = '';
-
-	$searchstr = isset($_POST['searchstr'])?escape_string($_POST['searchstr']):'';
-	$searchalldetail = isset($_REQUEST['searchalldetail'])?escape_string($_REQUEST['searchalldetail']):'';
-	$company = '';
-	$owner = isset($_POST['owner']) ? escape_string($_POST['owner']) : '';
-
-	$old_serial = isset($_REQUEST['old_serial'])?escape_string($_REQUEST['old_serial']):"";
-	$old_comment = isset($_POST['old_comment'])?escape_string($_POST['old_comment'], 1):"";
-	$old_trans_comment = isset($_POST['old_trans_comment'])?escape_string($_POST['old_trans_comment'], 1):"";
-	$old_model = isset($_REQUEST['old_model'])?escape_string($_REQUEST['old_model']):"";
-	$old_owner = isset($_POST['old_owner']) ? escape_string($_POST['old_owner']) : '';
-
-	$company = isset($_POST['company'])?escape_string($_POST['company'], 1):"";
-
-	if ($searchalldetail) {
-		$model = ".*";
-	}
-
-	$ret = array('serial'=>$serial,
-            'comment'=>$comment,
-            'trans_comment'=>$trans_comment,
-            'model'=>$model,
-            'customer'=>$customer,
-            'company'=>$company,
-            'duebackin'=>$duebackin,
-            'searchstr'=>$searchstr,
-            'searchalldetail'=>$searchalldetail,
-            'owner'=>$owner,
-            'old_serial'=>$old_serial,
-            'old_model'=>$old_model,
-            'old_comment'=>$old_comment,
-            'old_trans_comment'=>$old_trans_comment,
-            'old_owner'=>$old_owner,
-            'orderby'=>$orderby);
-
-
-	if (isset($_SESSION["username"])) {
-		$q = "select username from user where username=?";
-		$result = My_query($q, $_SESSION["username"]);
-		if ($result->rowCount()==1) {
-			$line = $result->fetch();
-			$ret['username'] = $line['username'];
-		}
-	}
-
-	return $ret;
-
-}
-
-
-function transact($info = array(),  $request, $reprint=1) {
-	/*
-	 * transact is a consolidated function to handle both check in and check out a part.
-	 *
-	 * $request: checkin or checkout
-	 */
-	global $realname;
-	$mysql_date = date("Y-m-d H:i:s");
-
-	$serial = $info['serial'];
-	if (strlen($serial) == 0) {
-		$info['err_message'] = "Need serial number.";
-		if ($reprint) print_transact_form($info);
-		return FALSE;
-	}
-	$comment = $info['comment'];
-	$custmer_id = 0;
-	$username=$_SESSION['username'];
-	$user_email=My_query_ret("select email from user where username=?", $_SESSION['username']);
-
-	/*print("<pre>info = ");
-	 print_r($info);
-	 print("</pre>");*/
-
-	db_lock_all_tables();
-	$sql_res = My_query("select * from
-						 parts JOIN transaction 
-						 ON parts.transaction_id = transaction.transaction_id
-						 where parts.serial=?", $serial);
-	if ($sql_res->rowCount() == 0) {
-		$info['err_message'] = "Cannot find part with serial number ".
-		strtoupper($serial) .
-				 ".<br/>You can use the following to add a new item into the database.";
-		if ($reprint) print_new_checkin_form($info);
-		My_query("UNLOCK TABLES");
-		return FALSE;
-	}
-
-	$part_array = $sql_res->fetch();
-	$part_status = $part_array['status'];
-	$model = strtoupper($part_array['model']);
-	$transaction_action = $part_array['action'];
-	$transaction_username=$part_array['username'];
-	$old_transaction_id=$part_array['transaction_id'];
-	$old_customer_id=$part_array['customer_id'];
-
-	if ($request=="checkout" and $part_status == 'out') {
-		$info['err_message'] = "$model with serial number ".
-		strtoupper($serial). " is out of stock";
-		if ($reprint) print_transact_form($info);
-		My_query("UNLOCK TABLES");
-		return FALSE;
-	} else if ($request=="checkin" and $part_status=='in') {
-		$info['err_message'] = "$model with serial number ".
-		strtoupper($serial). " is in stock. No checking in needed";
-		if ($reprint) print_transact_form($info);
-		My_query("UNLOCK TABLES");
-		return FALSE;
-	} else if ($transaction_action=="request_checkout" or $transaction_action=="request_checkin") {
-		$info['err_message'] = "$model with serial number ".
-		strtoupper($serial). " has been put on hold by a request from ".
-		$realname[$transaction_username].
-				 "<br/>".
-				 "Click <a href='./index.php?approve=1&serialarray[]=$serial'>here</a> to approve or deny the request before a new
-				 transaction can start.";
-		if ($reprint) print_transact_form($info);
-		My_query("UNLOCK TABLES");
-		return FALSE;
-	}
-
-	$permit = check_permission($_SESSION['username'], $serial);
-
-	if ($permit['permission'] == RIGHT_RO) {
-		$info['err_message'] = "$model with serial number ".
-		strtoupper($serial). " does not belongs to you.
-				 An email has been sent out for approval. Once approved, the
-				 transaction can continue.";
-		$transaction_action = "request_".$request;
-	} else if ($permit['permission'] == RIGHT_FULL) {
-		if ($request=="checkin") $transaction_action = "in";
-		else if ($request=="checkout") $transaction_action = "out";
-		else {
-			print_error_msg("<b>request is not checkin or checkout.</b>");
-			My_query("UNLOCK TABLES");
-			return FALSE;
-		}
-	} else {
-		$info['err_message'] = "You do not have right to ".$request." this item.";
-		if ($reprint) print_transact_form($info);
-		My_query("UNLOCK TABLES");
-		return FALSE;
-	}
-
-
-	if ($request=="checkout") {
-		$customer = $info['customer'];
+  if ($request=="checkout") {
+    $customer = strtolower(trim($ARGS->customer));
 			
-		$company = $info['company'];
+    $company = strtolower(trim($ARGS->company));
 
-		if ($customer=='' || $company=='') {
-			$info['err_message'] = "Customer and company
-										 name must be filled in.";
-			if ($reprint) print_transact_form($info);
-			My_query("UNLOCK TABLES");
-			return FALSE;
-		}
+    if ($customer=='' || $company=='') {
+      print(json_encode(array('result'=>'fail', 'error'=>'customermissing',
+			      'info' => "Customer and company
+					     name must be filled in.")));
+      My_query("UNLOCK TABLES");
+      return FALSE;
+    }
 
 
-		$duebackin = $info['duebackin'];
-		if (!is_numeric($duebackin)) {
-			$info['err_message'] = "Need a due back time (in days) to check out an item.";
-			if ($reprint) print_transact_form($info);
-			My_query("UNLOCK TABLES");
-			return FALSE;
-		}
-		$value = trim($comment);
-		if (empty($value)) {
-			$info['err_message'] = "Please provide a reason for check out in comment.";
-			if ($reprint) print_transact_form($info);
-			My_query("UNLOCK TABLES");
-			return FALSE;
-		}
+    $duebackin = trim($ARGS->duebackin);
+    if (!is_numeric($duebackin)) {
+      print(json_encode(array('result'=>'fail', 'error'=>'duebackmissing',
+			      'info' => "Need a due back time (in days) to check out an item.")));
+      My_query("UNLOCK TABLES");
+      return FALSE;
+    }
+    $value = trim($comment);
+    if (empty($value)) {
+      print(json_encode(array('result'=>'fail', 'error'=>'commentmissing',
+			      'info' => "Please provide a reason for check out in comment.")));
+      My_query("UNLOCK TABLES");
+      return FALSE;
+    }
 
-		// update part, customerm, and transactions
-		$sql_res = My_query("select customer_id from customer
-					   where customer_name=? and company=?", $customer, $company);
-		if ($sql_res->rowCount() == 0) {
-			// new customer, add
-			My_query("insert customer
-				set customer_name=?, company=?", $customer, $company );
-		}
-		$sql_res = My_query("select customer_id from customer
-				   where customer_name=? and company=?", $customer, $company);
-		$record = $sql_res->fetch();
-		$customer_id = $record['customer_id'];
+    // update part, customerm, and transactions
+    $sql_res = My_query("select customer_id from customer
+		    where customer_name=? and company=?", $customer, $company);
+    if ($sql_res->rowCount() == 0) {
+      // new customer, add
+      My_query("insert customer
+		     set customer_name=?, company=?", $customer, $company );
+    }
+    $sql_res = My_query("select customer_id from customer
+      		   where customer_name=? and company=?", $customer, $company);
+    $record = $sql_res->fetch();
+    $customer_id = $record['customer_id'];
 
-		My_query("insert transaction set
+    My_query("insert transaction set
 					serial=?,
 					action=?,
 					customer_id=?,
@@ -923,61 +569,68 @@ function transact($info = array(),  $request, $reprint=1) {
 					duebackin=$duebackin,
 				transaction_comment=?,
 				last_transaction_id=$old_transaction_id",
-		$serial, $transaction_action, $customer_id, $_SESSION['username'], $comment);
-	}
-	if ($request=="checkin") {
-		if ($transaction_action=='request_checkin') {
-			My_query("insert transaction
+	     $serial, $transaction_action, $customer_id, $_SESSION['username'], $comment);
+  }
+  if ($request=="checkin") {
+    if ($transaction_action=='request_checkin') {
+      My_query("insert transaction
 					 set serial=?, 
 					 action=?, 
 					 username=?,
 					 transaction_comment=?,
 					 customer_id=$old_customer_id,
 					 last_transaction_id=$old_transaction_id",
-			$serial, $transaction_action, $_SESSION['username'], $comment);
-		} else {
-			My_query("insert transaction
+	       $serial, $transaction_action, $_SESSION['username'], $comment);
+    } else {
+      My_query("insert transaction
 					 set serial=?, 
 					 action=?, 
 					 username=?,
 					 transaction_comment=?,
 					 last_transaction_id=$old_transaction_id",
-			$serial, $transaction_action, $_SESSION['username'], $comment);
-		}
-	}
+	       $serial, $transaction_action, $_SESSION['username'], $comment);
+    }
+  }
 
-	$result=My_query("select last_insert_id()");
-	$result_array = $result->fetch();
-	$transaction_id = $result_array[0];
+  $result=My_query("select last_insert_id()");
+  $result_array = $result->fetch();
+  $transaction_id = $result_array[0];
 
-	if ($transaction_action=='out') {
-		My_query("update parts set
-				 status='out', transaction_id=?
-					 where serial=?", $transaction_id, $serial);	
-		$info['message'] = "$model with serial ". strtoupper($serial).
-			 " is checked out to ".ucwords($customer)." of ".
-		ucwords($company) . ".";
-	} else if ($transaction_action=='in') {
-		My_query("update parts set
+  if ($transaction_action=='out') {
+    My_query("update parts 
+                          set status='out', transaction_id=?
+				  where serial=?", $transaction_id, $serial);	
+    print(json_encode(array('result'=>'pass', 
+			    'info'=> "$model with serial ". 
+			    strtoupper($serial).
+			    " is checked out to ".
+			    ucwords($customer)." of ".
+			    ucwords($company) . ".")));
+  } else if ($transaction_action=='in') {
+    My_query("update parts set
 				 status='in', transaction_id=?
 					 where serial=?", $transaction_id, $serial);	
-		$info['message'] = "$model with serial ". strtoupper($serial).
-			 " is checked in.";
-	} else if ($transaction_action=='request_checkout') {
-		My_query("update parts set
+    print(json_encode(array('result'=>'pass', 
+			    'info'=>
+			    "$model with serial ". 
+			    strtoupper($serial).
+			    " is checked in.")));
+    return PASS;
+  } else if ($transaction_action=='request_checkout') {
+    My_query("update parts set
 				 transaction_id=?
 					 where serial=?", $transaction_id, $serial);
 		
-		//print_r($permit);
+    //print_r($permit);
 		
-		foreach ($permit['approvals'] as $admin_user) {
-			$result=My_query("select * from user where username=?", $admin_user);
-			$line=$result->fetch();
+    foreach ($permit['approvals'] as $admin_user) {
+      $result=My_query("select * from user where username=?", $admin_user);
+      $line=$result->fetch();
 
 
-			$to      = $line['email'];
-			$subject = 'Inv DB Checkout Request';
-			$message = "
+      $to      = $line['email'];
+      $subject = 'Inv DB Checkout Request';
+      $message = "
 Hi, 
 			 
 I would like to checkout the following item from the inventory database.
@@ -996,29 +649,34 @@ Regards,
 			$realname[$username]
 ";
 
-			$header = "Reply-To: $realname[$username] <$user_email>\r\n";
-			$header .= "Return-Path: $realname[$username] <$user_email>\r\n";
-			$header .= "From: $realname[$username] <$user_email>\r\n";
-			$header .= "Organization: Ixia Communications\r\n";
-			$header .= "Content-Type: text/plain\r\n";
+      $header = "Reply-To: $realname[$username] <$user_email>\r\n";
+      $header .= "Return-Path: $realname[$username] <$user_email>\r\n";
+      $header .= "From: $realname[$username] <$user_email>\r\n";
+      $header .= "Organization: Ixia Communications\r\n";
+      $header .= "Content-Type: text/plain\r\n";
 
-			mail($to, $subject, $message, $header);
-		}
-		$info['message'] = "$model with serial ". strtoupper($serial).
-			 " is requested to be checked out to ".ucwords($customer)." of ".
-		ucwords($company) . ". A request email has been sent to ". implode(", ", $permit['approvals']);
-	} else if ($transaction_action=='request_checkin') {
-		My_query("update parts set
+      mail($to, $subject, $message, $header);
+    }
+    print(json_encode(array('result'=>'pass', 
+			    'info' => "$model with serial number ".
+			    strtoupper($serial). 
+			    " does not belongs to you.".
+			    "A request email has been sent to ". 
+			    implode(", ", $permit['approvals']) .
+			    "Once approved, you can get the card and loan it to your customer."
+			    )));
+  } else if ($transaction_action=='request_checkin') {
+    My_query("update parts set
 				 transaction_id=?
 					 where serial=?",  $transaction_id, $serial);
-		foreach ($permit['approvals'] as $admin_user) {
-			$result=My_query("select * from user where username=?", $admin_user);
-			$line=$result->fetch();
+    foreach ($permit['approvals'] as $admin_user) {
+      $result=My_query("select * from user where username=?", $admin_user);
+      $line=$result->fetch();
 
 
-			$to      = $line['email'];
-			$subject = 'Inv DB Checkin Request';
-			$message = "
+      $to      = $line['email'];
+      $subject = 'Inv DB Checkin Request';
+      $message = "
 Hi, 
 			 
 I would like to checkin the following item into the inventory database.
@@ -1033,23 +691,26 @@ Regards,
 			$realname[$username]
 ";
 
-			$header = "Reply-To: $realname[$username] <$user_email>\r\n";
-			$header .= "Return-Path: $realname[$username] <$user_email>\r\n";
-			$header .= "From: $realname[$username] <$user_email>\r\n";
-			$header .= "Organization: Ixia Communications\r\n";
-			$header .= "Content-Type: text/plain\r\n";
+      $header = "Reply-To: $realname[$username] <$user_email>\r\n";
+      $header .= "Return-Path: $realname[$username] <$user_email>\r\n";
+      $header .= "From: $realname[$username] <$user_email>\r\n";
+      $header .= "Organization: Ixia Communications\r\n";
+      $header .= "Content-Type: text/plain\r\n";
 
-			mail($to, $subject, $message, $header);
-		}
-		$info['message'] = "$model with serial ". strtoupper($serial).
-			 " is requested to be checked in. A request email has been sent to ". 
-		implode(", ", $permit['approvals']);
-	}
-	My_query("UNLOCK TABLES");
+      mail($to, $subject, $message, $header);
+    }
+    print(json_encode(array('result'=>'pass', 
+			    'info'=> "$model with serial ". 
+			    strtoupper($serial).
+			    " is requested to be checked in. ".
+			    "A request email has been sent to ". 
+			    implode(", ", $permit['approvals']))));
+  }
+  My_query("UNLOCK TABLES");
 
-	if ($reprint)  print_transact_form($info);
-	return TRUE;
+  return TRUE;
 }
+
 
 function count_approval() {
 	$username=$_SESSION['username'];
@@ -1420,69 +1081,35 @@ function showdetail($info=array()) {
 
 }
 
-function showhistory($info=array()) {
+function gethistory($info=array()) {
 	global $realname;
-	if (!$info['serial']) {
-		print_transact_form();
+	global $ARGS;
+	if (!isset($ARGS->serial)) {
+	  print(json_encode(array('result'=>'fail', 'error'=>'noserial',
+				  'info'=>'Missing serial number')));
 		exit();
 	}
-	$sql_res = My_query("select * from parts where serial=?", $info['serial']);
+	$sql_res = My_query("select * from parts where serial=?", 
+			    $ARGS->serial);
 	if ($sql_res->rowCount() == 0) {
-		$info['err_message'] = "Cannot find part with serial number
-		$info[serial]!" .
-                "<br/>You can use the following to add a new item into the database.";
-		print_transact_form($info);
-		exit();
+	  print(json_encode(array('result'=>'fail', 'error'=>'noserial',
+				  'info'=> "Cannot find serial number $ARGS->serial")));
+	  exit();
 	}
-	$result_array = $sql_res->fetch();
-	$serial = strtoupper($result_array['serial']);
-	$model = strtoupper($result_array['model']);
-	$status = $result_array['status'];
-	$comment = $result_array['part_comment'];
-	$owner = $realname[$result_array['owner']];
+	$item = $sql_res->fetch(PDO::FETCH_ASSOC);
 
-
-	echo "<p>Serial: <b>$serial</b><br />Model: <b>$model</b><br />
-               Owner: <b>$owner</b><br />Status: <b>$status</b><br />";
-	if ($comment) echo "Comment: $comment<br />";
-
-
-	echo "</p><div class='saperator'></div>";
-
-	$sql_res = My_query("select * from transaction
-	where serial='$info[serial]' order by date");
-
-
-	while ($line = $sql_res->fetch()) {
-
-		$customer_id = $line['customer_id'];
-		if (isset($realname[$line['username']])) {
-			$username = $realname[$line['username']];
-		} else {
-			$username = $line['username'];
-		}
-		$date = $line['date'];
-		$tran_comment = $line['transaction_comment'];
-		$action = $line['action'];
-
-		echo "<p>Checked <b>$action</b> by <b>$username</b> on <b>$date</b>";
-		if ($action == "out") {
-			$result = My_query("select * from customer
-	    where customer_id='$customer_id'");
-			$result_array = $result->fetch();
-			$customer_name = ucwords($result_array['customer_name']);
-			$company = ucwords($result_array['company']);
-			echo ", loaned to <b>$customer_name</b> in <b>$company</b>";
-			echo ". <br />Due back in $line[duebackin] days";
-		}
-		echo ".";
-		if ($tran_comment) echo "<br />Comment: $tran_comment";
-
-		echo "</p><div class='saperator'></div>";
-	}
-	echo "<a href='$_SERVER[PHP_SELF]?serial=$serial&editpart=1'>Edit Part</a>";
-	echo "<div class='saperator'></div>";
-	print_transact_form($info);
+	$sql_res = My_query("select transaction.*, 
+                            customer.customer_name, 
+                            user.realname 
+                            from transaction left join customer 
+                             on transaction.customer_id = customer.customer_id 
+                             left join user 
+                               on transaction.username = user.username 
+                            where serial=? order by date", $ARGS->serial);
+	
+	$transactions = $sql_res->fetchAll(PDO::FETCH_ASSOC);
+	print(json_encode(array('result'=>'pass', 
+				'transactions'=>$transactions)));
 }
 
 function print_upload_form() {

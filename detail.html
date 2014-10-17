@@ -1,5 +1,9 @@
 <h1>Details of {{serial}}</h1>
-<table class='table' ng-hide="error">
+
+<div class='alert alert-danger' ng-show="error">{{error.info}}</div>
+
+<div ng-hide="error">
+<table class='table'>
   <tr><th>Serial number:</th><td>{{part.serial}}</td></tr>
   <tr><th>Model:</th><td>{{part.model}}</td></tr>
   <tr><th>Owner:</th><td>{{part.owner}}</td></tr>
@@ -25,7 +29,16 @@
     <th>Handled by:</th><td>{{part.realname}}</td>
   </tr>
 </table>
-<div class='alert alert-danger' ng-show="error">{{error.info}}</div>
+
+<div>
+  <button ng-click="gethistory()" class="btn btn-info">Show history</button>
+  <p ng-repeat="transaction in transactions">
+    {{transaction.date}}: {{transaction.realname}} checked {{transaction.action}}
+    to {{transaction.customer_name}}, 
+    due back in {{transaction.duebackin}} days.<br/>
+    Comment: {{transaction.transaction_comment}}
+  </p>
+</div>
 
 <div ng-show="part.status=='out'" style="padding-bottom: 50px">
   <h1>Actions</h1>
@@ -40,8 +53,15 @@
   <h1>Actions</h1>
   <form>
     <table>
-      <tr><td>Customer name</td><td><input class="form-control" ng-model="customer_name" placeholder="Customer name"></td></tr>
-      <tr><td>Company</td><td><input class="form-control"  ng-model="company" placeholder="Company"></td></tr>
+      <tr><td>Customer name</td><td>
+	<input class="form-control" 
+	       ng-model="customer.customer_name" 
+	       placeholder="Name" 
+	       typeahead="customer.customer_name for customer in
+                          getcustomer($viewValue)"
+	       typeahead-on-select="onselectcustomer($item, $model, $label)">
+      </td></tr>
+      <tr><td>Company</td><td><input class="form-control"  ng-model="customer.company" placeholder="Company"></td></tr>
       <tr><td>Due back in</td><td>
 	<div class="input-group">
 	  <input class="form-control"  ng-model="duebackin">
@@ -56,4 +76,5 @@
 
     </table>
   </form>
-</div
+</div>
+</div>

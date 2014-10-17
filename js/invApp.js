@@ -87,8 +87,9 @@ angular.module('invApp')
     $scope.get_part_w_serial($scope.serial);
     
     $scope.checkin = function() {
-	$http.post("transact.php", {action:'checkin',
-				    serial: $scope.serial})
+	$scope.error = false;
+	$http.post("query.php", {action:'checkin',
+				 serial: $scope.serial})
 	    .success(function(data, status, headers, config) {
 		console.log(data);
 		if (data.result == 'pass') {
@@ -101,10 +102,11 @@ angular.module('invApp')
     };
     
     $scope.checkout = function() {
-	$http.post("transact.php", {action:'checkout',
+	$scope.error = false;
+	$http.post("query.php", {action:'checkout',
 				    serial: $scope.serial,
-				    customer: $scope.customer_name,
-				    company: $scope.company,
+				    customer: $scope.customer.customer_name,
+				    company: $scope.customer.company,
 				    duebackin: $scope.duebackin,
 				    comment: $scope.comment})
 	    .success(function(data, status, headers, config) {
@@ -115,6 +117,31 @@ angular.module('invApp')
 		    $scope.error = data;
 		}
 	    });
+    };
+    $scope.gethistory = function() {
+	$scope.error = false;
+	$http.post("query.php", {action:'gethistory',
+				 serial: $scope.serial})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    $scope.transactions = data.transactions;
+		} else {
+		    $scope.error = data;
+		}
+	    });
+    };
+    
+    // also get a list of customer for typeahead when checking out
+    // get part from database
+    $scope.getcustomer = function(input) {
+	return $http.post("searchcustomername.php", {input:input})
+	    .then(function(response) {
+		return response.data.customers;
+	    });
+    };
+    $scope.onselectcustomer = function($item, $model, $label) {
+	$scope.customer.company = $item.company;
     };
 })
 

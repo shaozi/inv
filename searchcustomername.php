@@ -1,5 +1,5 @@
 <?php
-include "lib/lib.inc";
+include "lib/lib2.inc";
 session_start();
 db_init();
 $result=authenticate();
@@ -14,20 +14,15 @@ session_commit();
 $ret=array();
 if($result!=PASS) {
     /* Not logged in */
-	
-	print(json_encode($ret));
-	exit;
+  $ret = array('result'=>'fail', 'error'=>'needlogin', 'info'=>'Need log in');
+  print(json_encode($ret));
 } else {
-	$term = escape_string($_REQUEST['term']);
-	
-	$result = My_query("select * from customer where
-	customer_name like ?",  "$term%");
-	while($line=$result->fetch()) {
-		$name=$line['customer_name'];
-		$company=$line['company'];
-		$ret[]=array('name'=>ucwords($name), 'company'=>ucwords($company));
-	}
-	print(json_encode($ret));
+  $customers = array();
+  $result = My_query("select customer_name, company
+                      from customer where customer_name like ?",
+		      "%".$ARGS->input."%");
+  $customers=$result->fetchAll(PDO::FETCH_ASSOC);
+  print(json_encode(array('result'=>'pass', 'customers'=>$customers)));
 }
 
 ?>

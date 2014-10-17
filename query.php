@@ -13,17 +13,26 @@ if($result!=PASS) {
 			  'info'=>'Authentication failed')));
  } else {
    switch($ARGS->action) {
-      case 'get_part_w_serial':
-      get_part_w_serial($ARGS->serial);
-      break;
-      case 'get_all_parts':
-      get_all_parts();
-      break;
-      default:
-      print(json_encode(array('result'=>'fail',
-			      'error'=>'unknown action',
-			      'info'=>'cannot recognize action '. $ARGS->action)
-			));
-  }
+   case 'get_part_w_serial':
+     get_part_w_serial($ARGS->serial);
+     break;
+   case 'get_all_parts':
+     get_all_parts();
+     break;
+   case 'checkin':
+     transact('checkin');
+     break;
+   case 'checkout':
+     transact('checkout');
+     break;
+   case 'gethistory':
+     gethistory();
+     break;
+   default:
+     print(json_encode(array('result'=>'fail',
+			     'error'=>'unknown action',
+			     'info'=>'cannot recognize action '. $ARGS->action)
+		       ));
+   }
  }
 ?>
