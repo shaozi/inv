@@ -1,6 +1,3 @@
-
-
-
 angular.module('invApp', ['ngRoute', 'ui.bootstrap']);
 
 angular.module('invApp')
@@ -131,6 +128,20 @@ angular.module('invApp')
 		}
 	    });
     };
+
+    $scope.deleteitem = function() {
+	$scope.error = false;
+	$http.post("query.php", {action:'deleteitem',
+				 serial: $scope.serial})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    $location.path('/');
+		} else {
+		    $scope.error = data;
+		}
+	    });
+    };
     
     // also get a list of customer for typeahead when checking out
     // get part from database
@@ -144,6 +155,67 @@ angular.module('invApp')
 	$scope.customer.company = $item.company;
     };
 })
+
+.controller('editItemController', function($http, $rootScope, $scope, $location, $routeParams) {
+    
+    if (typeof $rootScope.needlogin == 'undefined' || $rootScope.needlogin) {
+	$location.path('/login');
+	return;
+    }
+    $scope.serial = $routeParams.serial;
+
+    // get part from database
+    $scope.get_part_w_serial = function(serial) {
+	$http.post("query.php", {action:'get_part_w_serial',
+				 serial: serial})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    data.part.overduedays = parseInt(data.part.overduedays);
+		    if (data.part.status=="in") {
+			data.part.customer_name = null;
+			data.part.company = null;
+			data.part.loandate = null;
+			data.part.duebackdate = null;
+			data.part.overduedays = null;
+		    }
+		    $scope.part = data.part;
+		} else {
+		    $scope.error = data;
+		}
+	    });
+    };
+
+    $scope.get_part_w_serial($scope.serial);
+    
+    $scope.edititem = function() {
+	$scope.error = false;
+	$http.post("query.php", {action:'edititem',
+				 serial: $scope.serial})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    $location.path('/');
+		} else {
+		    $scope.error = data;
+		}
+	    });
+    };
+    $scope.deleteitem = function() {
+	$scope.error = false;
+	$http.post("query.php", {action:'deleteitem',
+				 serial: $scope.serial})
+	    .success(function(data, status, headers, config) {
+		console.log(data);
+		if (data.result == 'pass') {
+		    $location.path('/');
+		} else {
+		    $scope.error = data;
+		}
+	    });
+    };
+    
+ })
 
 .controller('logoutController', function($http, $rootScope, $scope, $location) {
     $rootScope.needlogin = true;
@@ -174,7 +246,7 @@ angular.module('invApp')
 	})
 	.when('/edit/:serial', {
 	    templateUrl: 'edit.html',
-	    controller: 'invController'
+	    controller: 'editItemController'
 	})
 	.when('/detail/:serial', {
 	    templateUrl: 'detail.html',

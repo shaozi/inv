@@ -1,0 +1,38 @@
+<h1>Edit {{serial}}</h1>
+
+<div class='alert alert-danger' ng-show="error">{{error.info}}</div>
+
+<form>
+  <table>
+    <tr>
+      <td>Serial:</td>
+      <td><input class="form-control" ng-model="part.serial" ></td>
+    </tr>
+    <tr>
+      <td>Model:</td>
+      <td><input class="form-control"  ng-model="part.model" ></td>
+    </tr>
+    <tr>
+      <td>Part number:</td>
+      <td><input class="form-control"  ng-model="part.part_number"></td>
+    </tr>
+    <tr>
+      <td>Part comment:</td>
+      <td><textarea class="form-control"  rows="5" 
+		    ng-model="part.part_comment"></textarea></td>
+    </tr>
+    <tr>
+      <td>Owner:</td>
+      <td><select class="form-control" ng-model="part.owner"></select></td>
+    </tr>
+
+
+
+    <tr><td> </td><td><input type="submit" 
+			     class="btn btn-lg btn-block btn-danger" 
+			     value="Update" ng-click="updateitem()" />
+    </td></tr>
+    
+  </table>
+</form>
+

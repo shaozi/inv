@@ -32,10 +32,14 @@
 
 <div>
   <button ng-click="gethistory()" class="btn btn-info">Show history</button>
+  <a href="#/edit/{{serial}}" class="btn btn-warning">Edit item</a>
+  <button ng-click="deleteitem()" class="btn btn-danger">Delete item</button>
+  
   <p ng-repeat="transaction in transactions">
-    {{transaction.date}}: {{transaction.realname}} checked {{transaction.action}}
-    to {{transaction.customer_name}}, 
-    due back in {{transaction.duebackin}} days.<br/>
+    <strong>{{transaction.date}}: </strong>
+    {{transaction.realname}} {{transaction.action}}<span ng-show="transaction.customer_name"> to {{transaction.customer_name}}, 
+     due back in {{transaction.duebackin}} days</span>.
+   <br/>
     Comment: {{transaction.transaction_comment}}
   </p>
 </div>
