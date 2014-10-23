@@ -171,14 +171,6 @@ angular.module('invApp')
 	    .success(function(data, status, headers, config) {
 		console.log(data);
 		if (data.result == 'pass') {
-		    data.part.overduedays = parseInt(data.part.overduedays);
-		    if (data.part.status=="in") {
-			data.part.customer_name = null;
-			data.part.company = null;
-			data.part.loandate = null;
-			data.part.duebackdate = null;
-			data.part.overduedays = null;
-		    }
 		    $scope.part = data.part;
 		} else {
 		    $scope.error = data;
